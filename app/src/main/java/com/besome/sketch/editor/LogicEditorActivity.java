@@ -1974,10 +1974,8 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 }
         );
         sheet.setOnAgenteEditListener(() -> {
-            // Recreate activity to reload block palettes if a custom block was added
-            finish();
-            startActivity(getIntent());
-            pro.sketchware.utility.SketchwareUtil.toast("Paleta de Lógica atualizada!");
+            // Toast only - do NOT restart activity, it destroys unsaved blocks
+            pro.sketchware.utility.SketchwareUtil.toast("Edição aplicada pelo SDBCodFlow!");
         });
         sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
     }
@@ -1990,24 +1988,43 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         bean.spec = "add source directly %s.inputOnly";
         bean.type = " ";
         bean.opCode = "addSourceDirectly";
-        bean.color = 0xff5cb722; // Greenish color standard for Add Source Directly
+        bean.color = 0xff5cb722;
+        bean.nextBlock = -1;
+        bean.subStack1 = -1;
+        bean.subStack2 = -1;
         
         bean.parameters = new java.util.ArrayList<>();
         bean.parameters.add(code);
         
         runOnUiThread(() -> {
-            Rs b2 = b(bean);
+            Rs newBlock = b(bean);
             
             // Populate the parameter text
-            if (b2.V != null && b2.V.size() > 0 && b2.V.get(0) instanceof Ss) {
-                ((Ss) b2.V.get(0)).setArgValue(code);
-                b2.m();
+            if (newBlock.V != null && newBlock.V.size() > 0 && newBlock.V.get(0) instanceof Ss) {
+                ((Ss) newBlock.V.get(0)).setArgValue(code);
+                newBlock.m();
             }
 
-            // Drop on workspace
-            o.a(b2, 300, 300);
-            b2.setOnTouchListener(LogicEditorActivity.this);
-            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código criado pelo SDBCodFlow na sua Lógica!");
+            // Find the last block in the existing chain and snap this block onto it
+            Rs rootBlock = o.getRoot();
+            if (rootBlock != null) {
+                // Walk the chain to find the last block
+                Rs lastBlock = rootBlock;
+                while (lastBlock.E != null) {
+                    lastBlock = lastBlock.E;
+                }
+                // Attach new block as the next block of the last one
+                o.a(newBlock, 0, 0);
+                newBlock.setOnTouchListener(LogicEditorActivity.this);
+                lastBlock.b(newBlock);
+                o.getRoot().k();
+                o.b();
+            } else {
+                // Fallback: drop loose if no root
+                o.a(newBlock, 300, 300);
+                newBlock.setOnTouchListener(LogicEditorActivity.this);
+            }
+            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado na Lógica pelo SDBCodFlow!");
         });
     }
 
