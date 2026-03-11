@@ -48,6 +48,7 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
     private String currentChatFile;
     private View layoutImagePreview;
     private android.widget.ImageView imgPreview;
+    private com.google.android.material.checkbox.MaterialCheckBox cbAutoApply;
     private ActivityResultLauncher<String> imagePickerLauncher;
     
     private boolean isCodeEditorMode = false;
@@ -156,6 +157,8 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         chatRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new ChatAdapter(messages);
         chatRecycler.setAdapter(adapter);
+
+        cbAutoApply = view.findViewById(R.id.cb_auto_apply);
 
         inputLoader(view);
         setupChips(view);
@@ -395,24 +398,42 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                             setThinking(true);
                             
                             new android.os.Handler().postDelayed(() -> {
-                                if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
-                                    SdbAgenteActivity.ChatMessage successMsg = new SdbAgenteActivity.ChatMessage("✅ **Edições aplicadas com sucesso!**", false);
-                                    
-                                    // Add Save button if we are in DesignActivity
-                                    if (getActivity() instanceof com.besome.sketch.design.DesignActivity) {
-                                        successMsg.setAction("save_project", "Salvar Projeto", () -> {
-                                            ((com.besome.sketch.design.DesignActivity) getActivity()).saveProject();
-                                            addMessage(new SdbAgenteActivity.ChatMessage("💾 Projeto salvo com sucesso!", false), false);
-                                        });
-                                    }
-                                    
-                                    addMessage(successMsg, true);
-                                    SketchwareUtil.toast("Edições aplicadas!");
-                                    if (editListener != null) {
-                                        editListener.onEditApplied();
+                                boolean autoApply = cbAutoApply != null && cbAutoApply.isChecked();
+                                
+                                if (autoApply) {
+                                    if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
+                                        SdbAgenteActivity.ChatMessage successMsg = new SdbAgenteActivity.ChatMessage("✅ **Edições aplicadas com sucesso!**", false);
+                                        
+                                        // Add Save button if we are in DesignActivity
+                                        if (getActivity() instanceof com.besome.sketch.design.DesignActivity) {
+                                            successMsg.setAction("save_project", "Salvar Projeto", () -> {
+                                                ((com.besome.sketch.design.DesignActivity) getActivity()).saveProject();
+                                                addMessage(new SdbAgenteActivity.ChatMessage("💾 Projeto salvo com sucesso!", false), false);
+                                            });
+                                        }
+                                        
+                                        addMessage(successMsg, true);
+                                        SketchwareUtil.toast("Edições aplicadas!");
+                                        if (editListener != null) {
+                                            editListener.onEditApplied();
+                                        }
+                                    } else {
+                                        addMessage(new SdbAgenteActivity.ChatMessage("❌ **Falha ao aplicar as edições.**\nJSON recebido era inválido ou vazio:\n```json\n" + jsonOnly + "\n```", false), true);
                                     }
                                 } else {
-                                    addMessage(new SdbAgenteActivity.ChatMessage("❌ **Falha ao aplicar as edições.**\nJSON recebido era inválido ou vazio:\n```json\n" + jsonOnly + "\n```", false), true);
+                                    // Manual Apply Mode
+                                    SdbAgenteActivity.ChatMessage manualMsg = new SdbAgenteActivity.ChatMessage("⚙️ **Alterações prontas.**\nClique no botão abaixo para aplicar no projeto.", false);
+                                    manualMsg.setAction("apply_edits", "Aplicar Mudanças", () -> {
+                                        if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
+                                            SketchwareUtil.toast("Edições aplicadas manualmente!");
+                                            if (editListener != null) {
+                                                editListener.onEditApplied();
+                                            }
+                                        } else {
+                                            SketchwareUtil.toastError("Erro ao aplicar edições");
+                                        }
+                                    });
+                                    addMessage(manualMsg, true);
                                 }
                                 setThinking(false);
                             }, 500);
@@ -629,6 +650,16 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             } else {
                 holder.image.setVisibility(View.GONE);
             }
+
+            if (holder.actionBtn != null) {
+                if (msg.actionText != null && !msg.actionText.isEmpty() && msg.actionRunnable != null) {
+                    holder.actionBtn.setVisibility(View.VISIBLE);
+                    holder.actionBtn.setText(msg.actionText);
+                    holder.actionBtn.setOnClickListener(v -> msg.actionRunnable.run());
+                } else {
+                    holder.actionBtn.setVisibility(View.GONE);
+                }
+            }
         }
         @Override public int getItemCount() { return messages.size(); }
     }
@@ -636,10 +667,12 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
     private static class ChatViewHolder extends RecyclerView.ViewHolder {
         public TextView text;
         public android.widget.ImageView image;
+        public com.google.android.material.button.MaterialButton actionBtn;
         public ChatViewHolder(View v) { 
             super(v); 
             text = v.findViewById(R.id.chat_text);
             image = v.findViewById(R.id.chat_image);
+            actionBtn = v.findViewById(R.id.chat_action_btn);
         }
     }
 }
