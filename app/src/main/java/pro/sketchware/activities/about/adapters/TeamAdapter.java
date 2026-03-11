@@ -46,7 +46,16 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.ViewHolder> {
 
         String contributorImg = member.getMemberImg();
         if (contributorImg != null) {
-            loadImageFromUrl(holder.binding.imgUserIcon, contributorImg);
+            if (contributorImg.startsWith("LOCAL_DRAWABLE:")) {
+                try {
+                    int resId = Integer.parseInt(contributorImg.substring("LOCAL_DRAWABLE:".length()));
+                    holder.binding.imgUserIcon.setImageResource(resId);
+                } catch (NumberFormatException e) {
+                    loadImageFromUrl(holder.binding.imgUserIcon, contributorImg);
+                }
+            } else {
+                loadImageFromUrl(holder.binding.imgUserIcon, contributorImg);
+            }
         }
 
         String contributorUsername = member.getMemberUsername();
