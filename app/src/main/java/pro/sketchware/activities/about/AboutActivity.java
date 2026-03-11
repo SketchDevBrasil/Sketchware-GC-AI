@@ -91,7 +91,7 @@ public class AboutActivity extends BaseAppCompatActivity {
                 AboutResponseModel.TeamMember me = new AboutResponseModel.TeamMember();
                 me.setUsername("Marcos Santos SK-SDBCodFlow");
                 me.setDescription("Autor único e principal");
-                me.setImg("android.resource://" + getPackageName() + "/" + R.drawable.sdbcodflow_avatar);
+                me.setImg("android.resource://" + getPackageName() + "/" + R.drawable.sdbcodflow_avatar_v2);
                 me.setCoreTeam(true);
                 me.setActive(true);
                 team.add(0, me);
