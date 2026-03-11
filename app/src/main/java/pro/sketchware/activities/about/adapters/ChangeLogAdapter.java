@@ -69,7 +69,7 @@ public class ChangeLogAdapter extends RecyclerView.Adapter<ChangeLogAdapter.View
 
         holder.binding.tvVariant.setVisibility(previousIsBetaValueDiffers ? View.VISIBLE : View.GONE);
         if (previousIsBetaValueDiffers) {
-            holder.binding.tvVariant.setText(isBetaVersion ? "Beta" : "Official");
+            holder.binding.tvVariant.setText(isBetaVersion ? "Beta" : "official AI sdb");
         }
 
         long releaseDate = release.getReleaseDate();

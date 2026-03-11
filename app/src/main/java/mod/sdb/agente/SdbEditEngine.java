@@ -53,31 +53,50 @@ public class SdbEditEngine {
 
     public static boolean applyEdits(String jsonResponse, String currentXmlName) {
         try {
+            // First try as a full response with operations array
             EditResponse response = GsonUtils.getGson().fromJson(jsonResponse, EditResponse.class);
-            if (response == null) return false;
-
-            String scId = response.scId;
             boolean applied = false;
-            
-            // Handle legacy "edits"
-            if (response.edits != null && !response.edits.isEmpty()) {
-                for (ProjectEdit edit : response.edits) {
-                    applyLegacyEdit(scId, edit);
-                }
-                applied = true;
-            }
 
-            // Handle new "operations"
-            if (response.operations != null && !response.operations.isEmpty()) {
-                boolean allOpsApplied = true;
-                for (Operation op : response.operations) {
-                    if (!applyOperation(scId, op, currentXmlName)) {
-                        allOpsApplied = false;
+            if (response != null && response.scId != null) {
+                String scId = response.scId;
+                
+                // Handle legacy "edits"
+                if (response.edits != null && !response.edits.isEmpty()) {
+                    for (ProjectEdit edit : response.edits) {
+                        applyLegacyEdit(scId, edit);
+                    }
+                    applied = true;
+                }
+
+                // Handle new "operations"
+                if (response.operations != null && !response.operations.isEmpty()) {
+                    for (Operation op : response.operations) {
+                        if (applyOperation(scId, op, currentXmlName)) {
+                            applied = true; // At least one success
+                        }
                     }
                 }
-                applied = allOpsApplied;
             }
             
+            // If still not applied, try as a single Operation object
+            if (!applied) {
+                Operation singleOp = GsonUtils.getGson().fromJson(jsonResponse, Operation.class);
+                if (singleOp != null && singleOp.op != null) {
+                    // We might need a scId here. Try to find it in the json manually if needed.
+                    // But usually, single ops are passed through LogicEditor which has the context.
+                    // For now, let's peek at scId if it's there.
+                    String scId = null;
+                    try {
+                        org.json.JSONObject root = new org.json.JSONObject(jsonResponse);
+                        scId = root.optString("scId", null);
+                    } catch (Exception ignored) {}
+                    
+                    if (scId != null) {
+                        applied = applyOperation(scId, singleOp, currentXmlName);
+                    }
+                }
+            }
+
             return applied;
         } catch (Exception e) {
             e.printStackTrace();
@@ -202,11 +221,25 @@ public class SdbEditEngine {
             }
 
             ViewBean view = new ViewBean(data.widget_id, data.widget_type);
-            view.parent = data.parent_id;
-            view.preParent = data.parent_id;
+            
+            ArrayList<ViewBean> siblings = jC.a(scId).d(xmlName);
+            boolean emptyScreen = (siblings == null || siblings.isEmpty());
+            
+            if (data.parent_id != null) {
+                view.parent = data.parent_id;
+                view.preParent = data.parent_id;
+            } else if (!emptyScreen) {
+                // Fallback to the first widget (often a root linear)
+                view.parent = siblings.get(0).id;
+                view.preParent = siblings.get(0).id;
+            } else {
+                // Completely empty screen, this will be the root
+                view.parent = "root";
+                view.preParent = "root";
+            }
             
             try {
-                ViewBean parentBean = jC.a(scId).c(xmlName, data.parent_id);
+                ViewBean parentBean = jC.a(scId).c(xmlName, view.parent);
                 if (parentBean != null) {
                     view.parentType = parentBean.type;
                     view.preParentType = parentBean.type;
@@ -223,18 +256,15 @@ public class SdbEditEngine {
                 view.index = data.index;
             } else {
                 int maxIndex = -1;
-                try {
-                    ArrayList<ViewBean> siblings = jC.a(scId).d(xmlName);
-                    if (siblings != null) {
-                        for (ViewBean sibling : siblings) {
-                            if (data.parent_id.equals(sibling.parent) || data.parent_id.equals(sibling.preParent)) {
-                                if (sibling.index > maxIndex) {
-                                    maxIndex = sibling.index;
-                                }
+                if (!emptyScreen) {
+                    for (ViewBean sibling : siblings) {
+                        if (view.parent.equals(sibling.parent) || view.parent.equals(sibling.preParent)) {
+                            if (sibling.index > maxIndex) {
+                                maxIndex = sibling.index;
                             }
                         }
                     }
-                } catch (Exception e) {}
+                }
                 view.index = maxIndex + 1;
             }
             view.preIndex = view.index;
@@ -293,5 +323,82 @@ public class SdbEditEngine {
             return false;
         }
         return false;
+    }
+
+    public static void addEventToActivityAndInjectCode(String scId, String javaName, String eventName, String code) {
+        a.a.a.eC projectData = a.a.a.jC.a(scId);
+
+        java.util.ArrayList<com.besome.sketch.beans.EventBean> events = projectData.g(javaName);
+        boolean exists = false;
+        if (events != null) {
+            for (com.besome.sketch.beans.EventBean eb : events) {
+                if (eventName.equals(eb.eventName)) {
+                    exists = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!exists) {
+            com.besome.sketch.beans.EventBean event = new com.besome.sketch.beans.EventBean(
+                    com.besome.sketch.beans.EventBean.EVENT_TYPE_ACTIVITY,
+                    0,
+                    javaName,
+                    eventName
+            );
+            if (events != null) events.add(event); 
+            projectData.a(javaName, eventName, new java.util.ArrayList<>());
+        }
+
+        java.util.ArrayList<com.besome.sketch.beans.BlockBean> blocks = projectData.a(javaName, eventName);
+        int maxId = 0;
+        if (blocks != null) {
+            for (com.besome.sketch.beans.BlockBean b : blocks) {
+                try { 
+                    int id = Integer.parseInt(b.id); 
+                    if (id > maxId) maxId = id; 
+                } catch (Exception ignored) {}
+            }
+        }
+        maxId++;
+
+        com.besome.sketch.beans.BlockBean directCodeBlock = new com.besome.sketch.beans.BlockBean();
+        directCodeBlock.id = String.valueOf(maxId);
+        directCodeBlock.spec = "add source directly %s.inputOnly";
+        directCodeBlock.type = " ";
+        directCodeBlock.opCode = "addSourceDirectly";
+        directCodeBlock.color = 0xffeebb55;
+        directCodeBlock.parameters.add(code);
+        directCodeBlock.nextBlock = -1;
+        directCodeBlock.subStack1 = -1;
+        directCodeBlock.subStack2 = -1;
+        
+        if (blocks != null) blocks.add(directCodeBlock);
+    }
+
+    public static void addMoreBlockAndInjectCode(String scId, String javaName, String mbName, String spec, String code) {
+        a.a.a.eC projectData = a.a.a.jC.a(scId);
+
+        android.util.Pair<String, String> mbPair = new android.util.Pair<>(mbName, spec);
+        java.util.ArrayList<android.util.Pair<String, String>> existingMb = projectData.i(javaName);
+        if (existingMb != null) existingMb.add(mbPair);
+        
+        projectData.a(javaName, mbName, new java.util.ArrayList<>());
+
+        if (code != null && !code.trim().isEmpty()) {
+            java.util.ArrayList<com.besome.sketch.beans.BlockBean> blocks = projectData.a(javaName, mbName);
+            com.besome.sketch.beans.BlockBean directCodeBlock = new com.besome.sketch.beans.BlockBean();
+            directCodeBlock.id = "0";
+            directCodeBlock.spec = "add source directly %s.inputOnly";
+            directCodeBlock.type = " ";
+            directCodeBlock.opCode = "addSourceDirectly";
+            directCodeBlock.color = 0xffeebb55;
+            directCodeBlock.parameters.add(code);
+            directCodeBlock.nextBlock = -1;
+            directCodeBlock.subStack1 = -1;
+            directCodeBlock.subStack2 = -1;
+            
+            if (blocks != null) blocks.add(directCodeBlock);
+        }
     }
 }

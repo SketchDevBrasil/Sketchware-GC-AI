@@ -123,6 +123,8 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
             setNote(null);
         });
         binding.noteCard.setOnClickListener(v -> toAppCompat());
+
+        binding.fabAgente.setOnClickListener(v -> showAiCodeEditDialog());
     }
 
     @Override

@@ -141,4 +141,10 @@ dependencies {
     }
 
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.1.5"
+    
+    // Unity Ads for Monetizing SDBCodFlow AI Chat
+    implementation('com.unity3d.ads:unity-ads:4.12.3') {
+        exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
 }

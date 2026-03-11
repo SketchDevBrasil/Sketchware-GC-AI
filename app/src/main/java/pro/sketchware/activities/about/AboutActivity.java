@@ -90,7 +90,7 @@ public class AboutActivity extends BaseAppCompatActivity {
                 }
                 AboutResponseModel.TeamMember me = new AboutResponseModel.TeamMember();
                 me.setUsername("Marcos Santos SK-SDBCodFlow");
-                me.setDescription("Autor único e principal");
+                me.setDescription("DEV único nesta versão");
                 me.setImg("LOCAL_DRAWABLE:" + R.drawable.sdbcodflow_avatar_v2);
                 me.setCoreTeam(true);
                 me.setActive(true);
@@ -100,8 +100,8 @@ public class AboutActivity extends BaseAppCompatActivity {
             java.util.ArrayList<AboutResponseModel.ChangeLogs> changelog = aboutResponseModel.getChangelog();
             if (changelog != null) {
                 AboutResponseModel.ChangeLogs newVersion = new AboutResponseModel.ChangeLogs();
-                newVersion.setTitle("v8.7.7");
-                newVersion.setDescription("Aqui chegou o SDBCodFlow AI Agent, a Inteligência Artificial revolucionária embutida diretamente no coração do Sketchware Pro! 🚀\n\nNossas melhorias exclusivas permitem que a IA leia o seu Código Java ativo, edite os Arquivos XML da tela (cores, textos, widgets) e crie novos Blocos Diretos na sua Lógica (em Eventos OnCreate, OnClick, etc).\n\nVocê não precisa mais desenvolver no escuro: desenhe interfaces incríveis, adicione backgrounds e gere componentes visuais e lógicas complexas apenas conversando em tempo real com o Agente dentro do seu projeto!\n\n🔹 Site Oficial / App Web: https://sketch-dev-brasil.web.app/SdbCodFlow\n🔹 Comunidade no Telegram: https://t.me/sketchdevbrasil");
+                newVersion.setTitle("Sketchware Pro SdbCodFlow v8.7.7");
+                newVersion.setDescription("Aqui chegou o SDBCodFlow AI Agent,para Sketchware Pro SdbCodFlow v8.7.7 a Inteligência Artificial revolucionária embutida diretamente no coração do Sketchware Pro! 🚀\n\nNossas melhorias exclusivas permitem que a IA leia o seu Código Java ativo, edite os Arquivos XML da tela (cores, textos, widgets) e crie novos Blocos Diretos na sua Lógica (em Eventos OnCreate, OnClick, etc).\n\nVocê não precisa mais desenvolver no escuro: desenhe interfaces incríveis, adicione backgrounds e crie tudo que o sketchware permite na interface de design ui ux sem precisar arrastar um elemento e gere componentes visuais e lógicas complexas apenas conversando com o chat de ia em tempo real, com o Agente dentro do seu projeto!\n\n🔹 Novidades desta atualização:\n- Ícone padronizado estilo 'star'.\n- Integração avançada no Compile Log (O Agente analisa seus erros de compilação!).\n- Disponível diretamente também no Code / XML Editor.\n- Capacidade incrível de forjar novos Events (Activity: Import)  gerar estruturas de MoreBlocks, criar paletas de blocos para logicas globais, criar e injetar o boco vere de codigo direto ja com codigo imbutido nos eventos de logicas, totalmente via Chat!\n\n🔹para mais informaões fique ligado na page da IA em Site Oficial: https://sketch-dev-brasil.web.app/SdbCodFlow\n🔹 Comunidade Telegram: https://t.me/sketchdevbrasil");
                 newVersion.setReleaseDate(System.currentTimeMillis());
                 newVersion.setBeta(false);
                 newVersion.setTitled(true);

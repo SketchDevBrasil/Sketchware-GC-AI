@@ -1951,25 +1951,31 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     private void toSdbCodFlow() {
         String shortContextName = "Lógica: " + eventName;
         String contextInfo = "Você está na edição da lógica do evento " + eventName + " da tela " + M.getJavaName() + ".\n"
-                + "Se o usuário pedir uma lógica, responda retornado um JSON com a operação 'add_direct_code' contendo um código Java.\n"
-                + "Formato:\n"
-                + "```json\n"
-                + "{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"seu_codigo_java_aqui;\" } }\n"
-                + "```\n"
-                + "Este bloco será injetado DIRETAMENTE na área de Lógica visual do usuário. Especifique código para Android SDK ou Sketchware.";
+                + "Para injetar blocos no evento ATUAL:\n"
+                + "{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"java_code;\" } }\n\n"
+                + "Para criar blocos no evento de IMPORT desta tela:\n"
+                + "{ \"op\": \"add_import\", \"data\": { \"code\": \"import android.content.Intent;\" } }\n\n"
+                + "Para adicionar um MOREBLOCK nesta tela:\n"
+                + "{ \"op\": \"add_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.b\", \"code\": \"java_code;\" } }";
 
         mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
                 scId, shortContextName, contextInfo, (String instruction) -> {
                     try {
                         org.json.JSONObject json = new org.json.JSONObject(instruction);
-                        if ("add_direct_code".equals(json.optString("op"))) {
-                            String code = json.getJSONObject("data").getString("code");
-                            addDirectCodeFromAi(code);
+                        
+                        // Handle both single op and operations array
+                        if (json.has("operations")) {
+                            org.json.JSONArray ops = json.getJSONArray("operations");
+                            for (int i = 0; i < ops.length(); i++) {
+                                processSingleLogicOp(ops.getJSONObject(i));
+                            }
+                        } else if (json.has("op")) {
+                            processSingleLogicOp(json);
                         } else {
-                            pro.sketchware.utility.SketchwareUtil.toast("Comando não suportado para Injeção de Blocos Diretos.");
+                            pro.sketchware.utility.SketchwareUtil.toast("Comando não reconhecido.");
                         }
                     } catch (Exception e) {
-                        pro.sketchware.utility.SketchwareUtil.toast("Json Inválido do Agente.");
+                        pro.sketchware.utility.SketchwareUtil.toast("Erro no processamento: " + e.getMessage());
                     }
                 }
         );
@@ -1978,6 +1984,37 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
             pro.sketchware.utility.SketchwareUtil.toast("Edição aplicada pelo SDBCodFlow!");
         });
         sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
+    }
+
+    private void processSingleLogicOp(org.json.JSONObject json) throws Exception {
+        String op = json.optString("op");
+        
+        if ("add_direct_code".equals(op)) {
+            String code = json.getJSONObject("data").getString("code");
+            addDirectCodeFromAi(code);
+            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado!");
+        } 
+        else if ("add_import".equals(op)) {
+            String code = json.getJSONObject("data").getString("code");
+            mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), "Import", code);
+            pro.sketchware.utility.SketchwareUtil.toast("Import adicionado!");
+        }
+        else if ("add_moreblock".equals(op)) {
+            org.json.JSONObject data = json.getJSONObject("data");
+            String mbName = data.getString("name");
+            String spec = data.getString("spec");
+            String code = data.optString("code", "");
+            mod.sdb.agente.SdbEditEngine.addMoreBlockAndInjectCode(scId, M.getJavaName(), mbName, spec, code);
+            pro.sketchware.utility.SketchwareUtil.toast("MoreBlock '" + mbName + "' adicionado!");
+        }
+        else if ("add_custom_block".equals(op)) {
+            // Forward to EditEngine
+            mod.sdb.agente.SdbEditEngine.applyEdits(json.toString(), null);
+        }
+        else {
+            // Fallback for widgets etc if AI mixed them (rare in LogicEditor)
+            mod.sdb.agente.SdbEditEngine.applyEdits(json.toString(), null);
+        }
     }
 
     private void addDirectCodeFromAi(String code) {
@@ -2005,6 +2042,13 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 newBlock.m();
             }
 
+            // Record for Undo/Redo
+            try {
+                // bC.d(scId).a(eventName, bean); // If we wanted to save to project directly
+                // But we are injecting into the UI, so we need the UI's undo mechanism
+                // Sketchware Pro usually uses bC to track changes.
+            } catch (Exception e) {}
+
             // Find the last block in the existing chain and snap this block onto it
             Rs rootBlock = o.getRoot();
             if (rootBlock != null) {
@@ -2018,12 +2062,15 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 newBlock.setOnTouchListener(LogicEditorActivity.this);
                 lastBlock.b(newBlock);
                 o.getRoot().k();
-                o.b();
             } else {
-                // Fallback: drop loose if no root
+                // No root, set this as the root block
                 o.a(newBlock, 300, 300);
                 newBlock.setOnTouchListener(LogicEditorActivity.this);
+                // Force pane to recognize this as a root if possible
+                // In some Sketchware versions, adding a block to a pane with no root makes it root.
             }
+            
+            o.b(); // Redraw
             pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado na Lógica pelo SDBCodFlow!");
         });
     }

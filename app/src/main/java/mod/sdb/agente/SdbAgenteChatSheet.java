@@ -8,6 +8,11 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
+import com.unity3d.ads.IUnityAdsInitializationListener;
+import com.unity3d.ads.UnityAds;
+import com.unity3d.services.banners.BannerView;
+import com.unity3d.services.banners.UnityBannerSize;
+import com.unity3d.services.banners.BannerErrorInfo;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -116,6 +121,7 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         return fragment;
     }
 
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,6 +150,39 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
 
         // Hide full screen elements if any or adjust for sheet
         view.findViewById(R.id.btn_back).setVisibility(View.GONE); // No back needed in sheet
+
+        // Unity Ads Initialization
+        String unityGameId = "6063332";
+        boolean testMode = false;
+        UnityAds.initialize(getContext(), unityGameId, testMode, new IUnityAdsInitializationListener() {
+            @Override
+            public void onInitializationComplete() {
+                try {
+                    LinearLayout adContainer = view.findViewById(R.id.unity_ads_container);
+                    adContainer.setVisibility(View.VISIBLE);
+                    BannerView bannerView = new BannerView((android.app.Activity) getContext(), "Banner_Android", new UnityBannerSize(320, 50));
+                    bannerView.setListener(new BannerView.IListener() {
+                        @Override
+                        public void onBannerLoaded(BannerView bannerAdView) {}
+                        @Override
+                        public void onBannerShown(BannerView bannerAdView) {}
+                        @Override
+                        public void onBannerClick(BannerView bannerAdView) {}
+                        @Override
+                        public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {
+                            adContainer.setVisibility(View.GONE);
+                        }
+                        @Override
+                        public void onBannerLeftApplication(BannerView bannerAdView) {}
+                    });
+                    adContainer.addView(bannerView);
+                    bannerView.load();
+                } catch (Exception ignored) {}
+            }
+
+            @Override
+            public void onInitializationFailed(UnityAds.UnityAdsInitializationError error, String message) {}
+        });
         view.findViewById(R.id.btn_history).setOnClickListener(v -> showHistoryDialog());
 
         TextView tvTitle = view.findViewById(R.id.tv_title);
@@ -407,45 +446,12 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                                 boolean autoApply = cbAutoApply != null && cbAutoApply.isChecked();
                                 
                                 if (autoApply) {
-                                    if (applyListener != null && jsonOnly.contains("\"add_direct_code\"")) {
-                                        applyListener.onApply(jsonOnly);
-                                        addMessage(new SdbAgenteActivity.ChatMessage("✅ **Código injetado com sucesso!**", false), true);
-                                        if (editListener != null) editListener.onEditApplied();
-                                    } else if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
-                                        SdbAgenteActivity.ChatMessage successMsg = new SdbAgenteActivity.ChatMessage("✅ **Edições aplicadas com sucesso!**", false);
-                                        
-                                        // Add Save button if we are in DesignActivity
-                                        if (getActivity() instanceof com.besome.sketch.design.DesignActivity) {
-                                            successMsg.setAction("save_project", "Salvar Projeto", () -> {
-                                                ((com.besome.sketch.design.DesignActivity) getActivity()).saveProject();
-                                                addMessage(new SdbAgenteActivity.ChatMessage("💾 Projeto salvo com sucesso!", false), false);
-                                            });
-                                        }
-                                        
-                                        addMessage(successMsg, true);
-                                        SketchwareUtil.toast("Edições aplicadas!");
-                                        if (editListener != null) {
-                                            editListener.onEditApplied();
-                                        }
-                                    } else {
-                                        addMessage(new SdbAgenteActivity.ChatMessage("❌ **Falha ao aplicar as edições.**\nJSON recebido era inválido ou vazio:\n```json\n" + jsonOnly + "\n```", false), true);
-                                    }
+                                    applyResponseJson(jsonOnly);
                                 } else {
                                     // Manual Apply Mode
                                     SdbAgenteActivity.ChatMessage manualMsg = new SdbAgenteActivity.ChatMessage("⚙️ **Alterações prontas.**\nClique no botão abaixo para aplicar no projeto.", false);
                                     manualMsg.setAction("apply_edits", "Aplicar Mudanças", () -> {
-                                        if (applyListener != null && jsonOnly.contains("\"add_direct_code\"")) {
-                                            applyListener.onApply(jsonOnly);
-                                            SketchwareUtil.toast("Código injetado manualmente!");
-                                            if (editListener != null) editListener.onEditApplied();
-                                        } else if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
-                                            SketchwareUtil.toast("Edições aplicadas manualmente!");
-                                            if (editListener != null) {
-                                                editListener.onEditApplied();
-                                            }
-                                        } else {
-                                            SketchwareUtil.toastError("Erro ao aplicar edições");
-                                        }
+                                        applyResponseJson(jsonOnly);
                                     });
                                     addMessage(manualMsg, true);
                                 }
@@ -528,25 +534,46 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             
             String instruction = contextPrefix + xmlPrefix + addon + "Você é um Agente Inteligente para Sketchware Pro.\n"
                 + "Você TEM PODER para modificar o projeto diretamente enviando o JSON correto.\n"
-                + "1. Se o usuário quiser MUDAR a lógica ou interface, forneça o JSON de edições. NUNCA diga que não pode.\n"
-                + "2. Para interface, use 'operations': 'add_widget', 'update_widget', 'remove_widget', 'add_drawable', 'add_custom_block'.\n"
-                + "EXEMPLOS DE OPERAÇÕES:\n"
-                + "{\n"
-                + "  \"scId\": \"" + sc_id + "\",\n"
-                + "  \"operations\": [\n"
-                + "    { \"op\": \"add_custom_block\", \"data\": { \"palette_name\": \"UI Design\", \"palette_color\": \"#FF0000\", \"blocks\": [ { \"name\": \"bg_color\", \"type\": \" \", \"typeName\": \"\", \"spec\": \"set background color %s\", \"code\": \"view.setBackgroundColor(Color.parseColor(%1$s));\" } ] } },\n"
-                + "    { \"op\": \"add_drawable\", \"data\": { \"drawable_name\": \"sdb_btn_bg\", \"xml_content\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<shape xmlns:android=\\\"http://schemas.android.com/apk/res/android\\\">\\n  <corners android:radius=\\\"8dp\\\"/>\\n  <solid android:color=\\\"#FF0000\\\"/>\\n</shape>\" } },\n"
-                + "    { \"op\": \"add_widget\", \"xmlName\": \"" + (contextXmlName != null ? contextXmlName : "main") + "\", \"data\": { \"widget_id\": \"btn1\", \"parent_id\": \"linear1\", \"widget_type\": 3, \"attributes\": {\"android:text\": \"Olá\", \"android:background\": \"@drawable/sdb_btn_bg\"} } },\n"
-                + "    { \"op\": \"update_widget\", \"xmlName\": \"" + (contextXmlName != null ? contextXmlName : "main") + "\", \"data\": { \"widget_id\": \"btn1\", \"attributes\": {\"android:text\": \"Mundo\"} } },\n"
-                + "    { \"op\": \"remove_widget\", \"xmlName\": \"" + (contextXmlName != null ? contextXmlName : "main") + "\", \"data\": { \"widget_id\": \"textview1\" } }\n"
-                + "  ]\n"
-                + "}\n"
-                + "MAPPING DE TIPOS (widget_type):\n"
-                + "0:LinearLayout(H), 1:RelativeLayout, 3:Button, 4:TextView, 5:EditText, 6:ImageView.\n"
-                + "CUSTOM BLOCK SPECS: %s=string, %d=number, %b=boolean, %m.view=view\n"
-                + "IMPORTANTE: Responda primeiro com uma breve explicação e depois o JSON. Use o contexto abaixo:";
+                + "Responda primeiro com uma breve explicação e depois o JSON.\n\n"
+                + "### REGRAS DE OURO PARA LÓGICA:\n"
+                + "1. **Injeção Direta** (Bloco Verde): Use quando o usuário pedir para 'adicionar lógica no evento' ou 'fazer algo' na tela atual.\n"
+                + "   `{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"java_code;\" } }`\n"
+                + "2. **More Block** (Modular): Use para criar funções/métodos reaproveitáveis.\n"
+                + "   `{ \"op\": \"add_moreblock\", \"data\": { \"name\": \"nome\", \"spec\": \"spec %s.s\", \"code\": \"java_code;\" } }`\n"
+                + "3. **Custom Block** (Paleta): Use para criar novos blocos permanentes na paleta do Sketchware.\n"
+                + "   `{ \"op\": \"add_custom_block\", \"data\": { \"palette_name\": \"AI\", \"blocks\": [ { \"name\": \"block1\", \"spec\": \"spec\", \"code\": \"code\" } ] } }` (NUNCA substitua injeção direta por isso, a menos que solicitado).\n\n"
+                + "### OPERAÇÕES DE INTERFACE:\n"
+                + "Use 'operations' array com: 'add_widget', 'update_widget', 'remove_widget', 'add_drawable'.\n"
+                + "MAPPING DE TIPOS (widget_type): 0:LinearLayout(H), 1:RelativeLayout, 3:Button, 4:TextView, 5:EditText, 6:ImageView.\n"
+                + "IMPORTANTE: Use o contexto abaixo para decidir a melhor operação:";
             setThinking(true);
             agente.askWithHistory(text, contextInfo + "\n\n" + instruction, historyForApi, listener);
+        }
+    }
+
+    private void applyResponseJson(String json) {
+        boolean logicInjected = false;
+        if (applyListener != null) {
+            // Priority: Logic Editor Injection
+            applyListener.onApply(json);
+            logicInjected = true;
+        }
+        
+        // Also apply through general engine if applicable (widgets, drawables, etc.)
+        boolean engineInjected = SdbEditEngine.applyEdits(json, contextXmlName);
+        
+        if (logicInjected || engineInjected) {
+            SdbAgenteActivity.ChatMessage successMsg = new SdbAgenteActivity.ChatMessage("✅ **Edições aplicadas!**", false);
+            if (getActivity() instanceof com.besome.sketch.design.DesignActivity) {
+                successMsg.setAction("save_project", "Salvar Projeto", () -> {
+                    ((com.besome.sketch.design.DesignActivity) getActivity()).saveProject();
+                    addMessage(new SdbAgenteActivity.ChatMessage("💾 Projeto salvo!", false), false);
+                });
+            }
+            addMessage(successMsg, true);
+            if (editListener != null) editListener.onEditApplied();
+        } else {
+             addMessage(new SdbAgenteActivity.ChatMessage("❌ **Falha ao aplicar as edições.**\nVerifique se o JSON é válido.", false), true);
         }
     }
 

@@ -3,62 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 6-pointed Star of David -->
-    <!-- Upper triangle -->
+    <!-- Standard Material Design 'auto_awesome' (magic sparkle) icon -->
     <path
         android:fillColor="#FF000000"
-        android:pathData="M12,4 L16.5,13 L7.5,13 Z"/>
-    <!-- Lower triangle -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M12,20 L7.5,11 L16.5,11 Z"/>
-    <!-- Rays / sparkle lines -->
-    <!-- Top -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M12,0.5 L12,2.5"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Top-right -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M19.5,3 L17.5,5"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Right -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M23.5,12 L21.5,12"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Bottom-right -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M19.5,21 L17.5,19"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Bottom -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M12,23.5 L12,21.5"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Bottom-left -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M4.5,21 L6.5,19"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Left -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M0.5,12 L2.5,12"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
-    <!-- Top-left -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M4.5,3 L6.5,5"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FF000000"/>
+        android:pathData="M19,4.99L17.5,8.5 14,10l3.5,1.5L19,15.01l1.5,-3.5L24,10l-3.5,-1.5L19,4.99zM10.99,3L7.5,10.49 0,14l7.5,3.51L10.99,25l3.51,-7.49 7.5,-3.51L14.5,10.49L10.99,3zM11,18.01l-1,-2L8,15l2,-1l1,-2l1,2l2,1l-2,1L11,18.01z"/>
 </vector>

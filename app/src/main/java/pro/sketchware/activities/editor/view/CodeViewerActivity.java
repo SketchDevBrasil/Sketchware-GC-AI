@@ -45,6 +45,21 @@ public class CodeViewerActivity extends BaseAppCompatActivity {
 
         UI.addSystemWindowInsetToPadding(binding.appBarLayout, true, true, true, false);
         UI.addSystemWindowInsetToMargin(binding.editor, true, false, true, true);
+
+        binding.fabAgente.setOnClickListener(v -> {
+            String contextInfo = "Visualizando o código do arquivo (" + scheme + "). scId: " + scId + "\n\n"
+                    + "Código atual:\n```\n" + code + "\n```";
+            
+            mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
+                    scId,
+                    "Viewer: " + scheme,
+                    contextInfo,
+                    (instruction) -> {
+                        pro.sketchware.utility.SketchwareUtil.toast("Edições não suportadas no modo de visualização.");
+                    }
+            );
+            sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
+        });
     }
 
     private void loadColorScheme(String scheme) {

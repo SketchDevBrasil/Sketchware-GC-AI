@@ -40,33 +40,43 @@ public class SdbProjectContext {
             // 2.1 View Hierarchy (Existing Widgets)
             sb.append("  Widgets (Layout):\n");
             ArrayList<com.besome.sketch.beans.ViewBean> layoutViews = jC.a(scId).d(xmlName);
-            for (com.besome.sketch.beans.ViewBean v : layoutViews) {
-                sb.append("    - ID: ").append(v.id).append(", Type: ").append(v.type).append(", Parent: ").append(v.parent).append("\n");
+            if (layoutViews == null || layoutViews.isEmpty()) {
+                sb.append("    (No widgets found on this screen yet. You should create a root layout first or use 'main' if applicable.)\n");
+            } else {
+                for (com.besome.sketch.beans.ViewBean v : layoutViews) {
+                    sb.append("    - ID: ").append(v.id).append(", Type: ").append(v.type).append(", Parent: ").append(v.parent).append("\n");
+                }
             }
 
             // Components for this view
             sb.append("  Components:\n");
             ArrayList<ComponentBean> components = jC.a(scId).e(javaName);
-            for (ComponentBean comp : components) {
-                sb.append("    - ID: ").append(comp.componentId).append(", Type: ").append(comp.type).append("\n");
+            if (components == null || components.isEmpty()) {
+                sb.append("    (No components in this screen.)\n");
+            } else {
+                for (ComponentBean comp : components) {
+                    sb.append("    - ID: ").append(comp.componentId).append(", Type: ").append(comp.type).append("\n");
+                }
             }
 
             // Events for this view
             sb.append("  Events:\n");
+            boolean hasEvents = false;
             // Activity Events (usually prefixed with 0_)
             for (String eventName : a.a.a.oq.ACTIVITY_EVENTS) {
-                appendEventIfNotEmpty(sb, scId, javaName, "0_" + eventName);
+                if (appendEventIfNotEmpty(sb, scId, javaName, "0_" + eventName)) hasEvents = true;
             }
             // Component Events
-            for (ComponentBean comp : components) {
-                // We'd ideally use oq to get events for this component type
-                // But we can try common ones or scan all potential ones.
-                // For a surgical/deep context, we can search the data folder too.
-                // But let's try a few common component events for now.
-                String[] commonCompEvents = {"onResponse", "onCancelled", "onChildAdded", "onClick"};
-                for (String ce : commonCompEvents) {
-                    appendEventIfNotEmpty(sb, scId, javaName, comp.componentId + "_" + ce);
+            if (components != null) {
+                for (ComponentBean comp : components) {
+                    String[] commonCompEvents = {"onResponse", "onCancelled", "onChildAdded", "onClick"};
+                    for (String ce : commonCompEvents) {
+                        if (appendEventIfNotEmpty(sb, scId, javaName, comp.componentId + "_" + ce)) hasEvents = true;
+                    }
                 }
+            }
+            if (!hasEvents) {
+                sb.append("    (No event logic implemented in this screen yet.)\n");
             }
             sb.append("\n");
         }
@@ -74,11 +84,13 @@ public class SdbProjectContext {
         return sb.toString();
     }
 
-    private static void appendEventIfNotEmpty(StringBuilder sb, String scId, String javaName, String eventName) {
+    private static boolean appendEventIfNotEmpty(StringBuilder sb, String scId, String javaName, String eventName) {
         String blocksJson = jC.a(scId).b(javaName, eventName);
         if (blocksJson != null && !blocksJson.isEmpty() && !blocksJson.equals("[]")) {
             sb.append("    Event: ").append(eventName).append("\n");
             sb.append("      Blocks: ").append(blocksJson).append("\n");
+            return true;
         }
+        return false;
     }
 }
