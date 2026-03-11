@@ -1949,6 +1949,7 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     }
 
     private void toSdbCodFlow() {
+        String shortContextName = "Lógica: " + eventName;
         String contextInfo = "Você está na edição da lógica do evento " + eventName + " da tela " + M.getJavaName() + ".\n"
                 + "Se o usuário pedir uma lógica, responda retornado um JSON com a operação 'add_direct_code' contendo um código Java.\n"
                 + "Formato:\n"
@@ -1958,7 +1959,7 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 + "Este bloco será injetado DIRETAMENTE na área de Lógica visual do usuário. Especifique código para Android SDK ou Sketchware.";
 
         mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
-                scId, contextInfo, (String instruction) -> {
+                scId, shortContextName, contextInfo, (String instruction) -> {
                     try {
                         org.json.JSONObject json = new org.json.JSONObject(instruction);
                         if ("add_direct_code".equals(json.optString("op"))) {
@@ -1972,6 +1973,12 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                     }
                 }
         );
+        sheet.setOnAgenteEditListener(() -> {
+            // Recreate activity to reload block palettes if a custom block was added
+            finish();
+            startActivity(getIntent());
+            pro.sketchware.utility.SketchwareUtil.toast("Paleta de Lógica atualizada!");
+        });
         sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
     }
 

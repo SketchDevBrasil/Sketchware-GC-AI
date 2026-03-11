@@ -57,6 +57,7 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
     
     private String contextName = null;
     private String contextXmlName = null;
+    private String systemInstructionAddon = null;
     private OnApplyListener applyListener = null;
     private OnAgenteEditListener editListener = null;
 
@@ -80,11 +81,12 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         return fragment;
     }
 
-    public static SdbAgenteChatSheet newInstance(String sc_id, String contextName, OnApplyListener listener) {
+    public static SdbAgenteChatSheet newInstance(String sc_id, String contextName, String systemInstructionAddon, OnApplyListener listener) {
         SdbAgenteChatSheet fragment = new SdbAgenteChatSheet();
         Bundle args = new Bundle();
         args.putString("sc_id", sc_id);
         args.putString("context_name", contextName);
+        args.putString("system_instruction_addon", systemInstructionAddon);
         fragment.setArguments(args);
         fragment.applyListener = listener;
         return fragment;
@@ -121,6 +123,7 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             sc_id = getArguments().getString("sc_id");
             contextName = getArguments().getString("context_name");
             contextXmlName = getArguments().getString("context_xml_name");
+            systemInstructionAddon = getArguments().getString("system_instruction_addon");
             if (getArguments().containsKey("original_code")) {
                 originalCode = getArguments().getString("original_code");
                 isCodeEditorMode = true;
@@ -521,8 +524,9 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         } else {
             String contextPrefix = (contextName != null) ? "CONTEXTO ATUAL: " + contextName + "\n" : "";
             String xmlPrefix = (contextXmlName != null) ? "TELA ATUAL (XML): " + contextXmlName + "\n" : "";
+            String addon = (systemInstructionAddon != null) ? systemInstructionAddon + "\n" : "";
             
-            String instruction = contextPrefix + xmlPrefix + "Você é um Agente Inteligente para Sketchware Pro.\n"
+            String instruction = contextPrefix + xmlPrefix + addon + "Você é um Agente Inteligente para Sketchware Pro.\n"
                 + "Você TEM PODER para modificar o projeto diretamente enviando o JSON correto.\n"
                 + "1. Se o usuário quiser MUDAR a lógica ou interface, forneça o JSON de edições. NUNCA diga que não pode.\n"
                 + "2. Para interface, use 'operations': 'add_widget', 'update_widget', 'remove_widget', 'add_drawable', 'add_custom_block'.\n"
