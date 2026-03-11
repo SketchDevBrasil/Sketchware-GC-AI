@@ -381,8 +381,11 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                     boolean hasJson = jsonStart != -1 && jsonEnd > jsonStart;
                     String potentialJson = hasJson ? trimmedResponse.substring(jsonStart, jsonEnd) : "";
                     
-                    boolean isJsonEdit = hasJson && potentialJson.contains("\"scId\"") && 
-                                        (potentialJson.contains("\"edits\"") || potentialJson.contains("\"operations\""));
+                    boolean isJsonEdit = hasJson && (
+                        (potentialJson.contains("\"scId\"") && (potentialJson.contains("\"edits\"") || potentialJson.contains("\"operations\""))) ||
+                        potentialJson.contains("\"add_direct_code\"") || 
+                        potentialJson.contains("\"add_custom_block\"")
+                    );
 
                     if (isJsonEdit) {
                         try {
@@ -401,7 +404,11 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                                 boolean autoApply = cbAutoApply != null && cbAutoApply.isChecked();
                                 
                                 if (autoApply) {
-                                    if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
+                                    if (applyListener != null && jsonOnly.contains("\"add_direct_code\"")) {
+                                        applyListener.onApply(jsonOnly);
+                                        addMessage(new SdbAgenteActivity.ChatMessage("✅ **Código injetado com sucesso!**", false), true);
+                                        if (editListener != null) editListener.onEditApplied();
+                                    } else if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
                                         SdbAgenteActivity.ChatMessage successMsg = new SdbAgenteActivity.ChatMessage("✅ **Edições aplicadas com sucesso!**", false);
                                         
                                         // Add Save button if we are in DesignActivity
@@ -424,7 +431,11 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                                     // Manual Apply Mode
                                     SdbAgenteActivity.ChatMessage manualMsg = new SdbAgenteActivity.ChatMessage("⚙️ **Alterações prontas.**\nClique no botão abaixo para aplicar no projeto.", false);
                                     manualMsg.setAction("apply_edits", "Aplicar Mudanças", () -> {
-                                        if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
+                                        if (applyListener != null && jsonOnly.contains("\"add_direct_code\"")) {
+                                            applyListener.onApply(jsonOnly);
+                                            SketchwareUtil.toast("Código injetado manualmente!");
+                                            if (editListener != null) editListener.onEditApplied();
+                                        } else if (SdbEditEngine.applyEdits(jsonOnly, contextXmlName)) {
                                             SketchwareUtil.toast("Edições aplicadas manualmente!");
                                             if (editListener != null) {
                                                 editListener.onEditApplied();
