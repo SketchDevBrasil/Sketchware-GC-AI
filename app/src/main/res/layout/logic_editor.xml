@@ -76,4 +76,18 @@
         android:id="@+id/dummy"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_agente"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="96dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/sdbcodflow_avatar"
+        app:fabSize="normal"
+        app:backgroundTint="@android:color/white"
+        tools:ignore="ContentDescription" />
+
 </RelativeLayout>

@@ -1945,7 +1945,65 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         O = findViewById(R.id.right_drawer);
         findViewById(R.id.search_header).setOnClickListener(v -> paletteSelector.showSearchDialog());
         extraPaletteBlock = new ExtraPaletteBlock(this, isViewBindingEnabled);
+        findViewById(R.id.fab_agente).setOnClickListener(v -> toSdbCodFlow());
     }
+
+    private void toSdbCodFlow() {
+        String contextInfo = "Você está na edição da lógica do evento " + eventName + " da tela " + M.getJavaName() + ".\n"
+                + "Se o usuário pedir uma lógica, responda retornado um JSON com a operação 'add_direct_code' contendo um código Java.\n"
+                + "Formato:\n"
+                + "```json\n"
+                + "{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"seu_codigo_java_aqui;\" } }\n"
+                + "```\n"
+                + "Este bloco será injetado DIRETAMENTE na área de Lógica visual do usuário. Especifique código para Android SDK ou Sketchware.";
+
+        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
+                scId, contextInfo, (String instruction) -> {
+                    try {
+                        org.json.JSONObject json = new org.json.JSONObject(instruction);
+                        if ("add_direct_code".equals(json.optString("op"))) {
+                            String code = json.getJSONObject("data").getString("code");
+                            addDirectCodeFromAi(code);
+                        } else {
+                            pro.sketchware.utility.SketchwareUtil.toast("Comando não suportado para Injeção de Blocos Diretos.");
+                        }
+                    } catch (Exception e) {
+                        pro.sketchware.utility.SketchwareUtil.toast("Json Inválido do Agente.");
+                    }
+                }
+        );
+        sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
+    }
+
+    private void addDirectCodeFromAi(String code) {
+        int maxId = o.g;
+        com.besome.sketch.beans.BlockBean bean = new com.besome.sketch.beans.BlockBean();
+        bean.id = String.valueOf(maxId);
+        o.g++;
+        bean.spec = "add source directly %s.inputOnly";
+        bean.type = " ";
+        bean.opCode = "addSourceDirectly";
+        bean.color = 0xff5cb722; // Greenish color standard for Add Source Directly
+        
+        bean.parameters = new java.util.ArrayList<>();
+        bean.parameters.add(code);
+        
+        runOnUiThread(() -> {
+            Rs b2 = b(bean);
+            
+            // Populate the parameter text
+            if (b2.V != null && b2.V.size() > 0 && b2.V.get(0) instanceof Ss) {
+                ((Ss) b2.V.get(0)).setArgValue(code);
+                b2.m();
+            }
+
+            // Drop on workspace
+            o.a(b2, 300, 300);
+            b2.setOnTouchListener(LogicEditorActivity.this);
+            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código criado pelo SDBCodFlow na sua Lógica!");
+        });
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
