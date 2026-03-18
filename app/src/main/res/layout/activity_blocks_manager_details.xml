@@ -22,7 +22,18 @@
         android:id="@+id/fab_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center|right"
+        android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         app:srcCompat="@drawable/ic_add_white_24dp" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_agente"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="88dp"
+        app:backgroundTint="@color/color_primary"
+        app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
+        app:tint="@android:color/white" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

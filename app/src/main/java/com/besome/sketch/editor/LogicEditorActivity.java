@@ -171,6 +171,52 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     private final Runnable longPressed = this::r;
     private Boolean isViewBindingEnabled;
     private mod.sdb.agente.SdbAgenteSk agente;
+    private final android.content.BroadcastReceiver refreshReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context context, android.content.Intent intent) {
+            if (mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT.equals(intent.getAction())) {
+                String sc_id = intent.getStringExtra("sc_id");
+                if (scId != null && scId.equals(sc_id)) {
+                    String changedEventKey = intent.getStringExtra("event_key");
+                    String currentEventKey = id + "_" + eventName;
+                    if (changedEventKey != null && changedEventKey.equals(currentEventKey)) {
+                        // O Agente alterou o evento atual (ex: CodeViewerActivity salvou)
+                        // Recarregar do DB sem sobrescrever — mostra o bloco de código injetado
+                        setupEventHeader();
+                        loadEventBlocks();
+                        pro.sketchware.utility.SketchwareUtil.toast("Código sincronizado com os blocos!");
+                    } else {
+                        // O Agente alterou outro evento (import, moreblock, etc.)
+                        // Apenas salva o estado atual para proteger blocos manuais
+                        E();
+                        pro.sketchware.utility.SketchwareUtil.toast("Projeto atualizado pelo Agente!");
+                    }
+                }
+            }
+        }
+    };
+
+    private String getCleanId() {
+        String cleanId = id;
+        if (cleanId != null && cleanId.endsWith(".java")) {
+            cleanId = cleanId.substring(0, cleanId.length() - 5);
+        }
+        return cleanId;
+    }
+
+    private void saveBlocksToProject() {
+        if (o == null || M == null) return;
+        try {
+            ArrayList<BlockBean> blocks = o.getBlocks();
+            eC projectData = jC.a(scId);
+            String javaName = M.getJavaName();
+            
+            projectData.a(javaName, id + "_" + eventName, blocks);
+            projectData.k(); // Persiste no disco
+        } catch (Exception e) {
+            LogUtil.e("LogicEditor", "Erro ao salvar blocos preventivamente", e);
+        }
+    }
 
     public static ArrayList<String> getAllJavaFileNames(String projectScId) {
         ArrayList<String> javaFileNames = new ArrayList<>();
@@ -191,6 +237,43 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         return xmlFileNames;
     }
 
+    private void setupEventHeader() {
+        if (o == null) return;
+        
+        // 1. Determina o título do cabeçalho do evento
+        String title;
+        if (eventName.equals("moreBlock")) {
+            title = getString(R.string.root_spec_common_define) + " " + ReturnMoreblockManager.getLogicEditorTitle(jC.a(scId).b(M.getJavaName(), id));
+        } else if (id.equals("_fab")) {
+            title = xB.b().a(getContext(), "fab", eventName);
+        } else {
+            title = xB.b().a(getContext(), id, eventName);
+        }
+        
+        // Inicializa o bloco Root (cabeçalho) no painel
+        o.a(title, eventName);
+
+        // Adiciona os argumentos do evento (ex: 'v' em onClick, 'mensagem' em moreBlock)
+        ArrayList<String> spec = FB.c(title);
+        int blockId = 0;
+        for (int i = 0; i < spec.size(); i++) {
+            String specBit = spec.get(i);
+            if (specBit.charAt(0) == '%') {
+                // Guard: BlockUtil.getVariableBlock calls spec.substring(3) — requires length >= 4
+                if (specBit.length() < 3) continue;
+                Rs block = BlockUtil.getVariableBlock(getContext(), blockId + 1, specBit, "getArg");
+                if (block != null) {
+                    block.setBlockType(1);
+                    o.addView(block);
+                    o.getRoot().a((Ts) o.getRoot().V.get(blockId), block);
+                    block.setOnTouchListener(this);
+                    blockId++;
+                }
+            }
+        }
+
+    }
+
     private void loadEventBlocks() {
         ArrayList<BlockBean> eventBlocks = jC.a(scId).a(M.getJavaName(), id + "_" + eventName);
         agente = new mod.sdb.agente.SdbAgenteSk(this, scId);
@@ -206,7 +289,17 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                     next.spec = "charSeq";
                 }
                 Rs b2 = b(next);
+                if (b2 == null) continue;
+                // Always store by original ID so the connection phase can find it
                 blockIdsAndBlocks.put((Integer) b2.getTag(), b2);
+                // MoreBlock fix: arg blocks (IDs 1, 2, ...) have their int nextBlock field
+                // default to 0 in Java. getAllChildren() follows nextBlock=0 → finds body
+                // block ID=0 → traverses it → traverses arg blocks again → infinite loop.
+                // Remapping the body block's view tag to 1000 removes it from the BlockPane
+                // registry under ID=0, so findBlockById(0) returns null → cycle broken.
+                if (eventName.equals("moreBlock") && (Integer) b2.getTag() == 0) {
+                    b2.setTag(1000);
+                }
                 o.g = Math.max(o.g, (Integer) b2.getTag() + 1);
                 runOnUiThread(() -> {
                     o.a(b2, 0, 0);
@@ -254,7 +347,11 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
             }
             runOnUiThread(() -> {
                 o.getRoot().k();
-                o.b();
+                // Para MoreBlocks: setupEventHeader() já chamou o.b() com o header normalizado.
+                // Chamar o.b() aqui com arg slots + body blocks causa loop infinito (ANR).
+                if (!eventName.equals("moreBlock")) {
+                    o.b();
+                }
             });
         }
     }
@@ -308,9 +405,16 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     }
 
     public void E() {
-        eC a2 = jC.a(scId);
-        String javaName = M.getJavaName();
-        a2.a(javaName, id + "_" + eventName, o.getBlocks());
+        try {
+            eC a2 = jC.a(scId);
+            String javaName = M.getJavaName();
+            // Sincroniza os blocos da interface com o banco de dados em memória
+            a2.a(javaName, id + "_" + eventName, o.getBlocks());
+            // CRÍTICO: Persiste todas as mudanças do projeto no disco imediatamente
+            a2.k();
+        } catch (OutOfMemoryError | StackOverflowError ignored) {
+            // Ciclo de blocos detectado — não salva em vez de crashar
+        }
     }
 
     public void G() {
@@ -1594,6 +1698,8 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     @Override
     public void finish() {
         bC.d(scId).b(s());
+        // Garante salvamento no fechamento
+        if (o != null) E();
         super.finish();
     }
 
@@ -1951,31 +2057,43 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     private void toSdbCodFlow() {
         String shortContextName = "Lógica: " + eventName;
         String contextInfo = "Você está na edição da lógica do evento " + eventName + " da tela " + M.getJavaName() + ".\n"
-                + "Para injetar blocos no evento ATUAL:\n"
-                + "{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"java_code;\" } }\n\n"
-                + "Para criar blocos no evento de IMPORT desta tela:\n"
-                + "{ \"op\": \"add_import\", \"data\": { \"code\": \"import android.content.Intent;\" } }\n\n"
-                + "Para adicionar um MOREBLOCK nesta tela:\n"
-                + "{ \"op\": \"add_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.b\", \"code\": \"java_code;\" } }";
+                + "Operações permitidas:\n"
+                + "1. Injetar código no evento ATUAL: { \"op\": \"add_direct_code\", \"data\": { \"code\": \"java_code;\" } }\n"
+                + "2. Adicionar MOREBLOCK nesta tela: { \"op\": \"add_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.b\", \"code\": \"java_code;\" } }\n"
+                + "3. Adicionar IMPORT: { \"op\": \"add_import\", \"data\": { \"code\": \"import ...;\" } }";
 
-        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
-                scId, shortContextName, contextInfo, (String instruction) -> {
+        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
+                scId, 
+                M.getJavaName(), 
+                M.getXmlName(),
+                contextInfo,
+                (String instruction) -> {
                     try {
-                        org.json.JSONObject json = new org.json.JSONObject(instruction);
-                        
-                        // Handle both single op and operations array
-                        if (json.has("operations")) {
-                            org.json.JSONArray ops = json.getJSONArray("operations");
-                            for (int i = 0; i < ops.length(); i++) {
-                                processSingleLogicOp(ops.getJSONObject(i));
+                        String trimmed = instruction.trim();
+                        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                            org.json.JSONObject json = new org.json.JSONObject(instruction);
+                            
+                            // Handle both single op and operations array
+                            if (json.has("operations")) {
+                                org.json.JSONArray ops = json.getJSONArray("operations");
+                                for (int i = 0; i < ops.length(); i++) {
+                                    processSingleLogicOp(ops.getJSONObject(i));
+                                }
+                            } else if (json.has("op")) {
+                                processSingleLogicOp(json);
                             }
-                        } else if (json.has("op")) {
-                            processSingleLogicOp(json);
-                        } else {
-                            pro.sketchware.utility.SketchwareUtil.toast("Comando não reconhecido.");
+                        } else if (!instruction.trim().isEmpty()) {
+                            // Raw code injection support
+                            mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), id + "_" + eventName, instruction);
                         }
                     } catch (Exception e) {
-                        pro.sketchware.utility.SketchwareUtil.toast("Erro no processamento: " + e.getMessage());
+                        // If JSON parsing fails but it looks like JSON, show error
+                        // Otherwise it might just be raw code that failed some other check
+                        if (instruction.trim().startsWith("{") || instruction.trim().startsWith("[")) {
+                             pro.sketchware.utility.SketchwareUtil.toast("Erro no processamento JSON: " + e.getMessage());
+                        } else if (!instruction.trim().isEmpty()) {
+                             mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), id + "_" + eventName, instruction);
+                        }
                     }
                 }
         );
@@ -1991,8 +2109,8 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         
         if ("add_direct_code".equals(op)) {
             String code = json.getJSONObject("data").getString("code");
-            addDirectCodeFromAi(code);
-            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado!");
+            mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), id + "_" + eventName, code);
+            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado e salvo!");
         } 
         else if ("add_import".equals(op)) {
             String code = json.getJSONObject("data").getString("code");
@@ -2009,11 +2127,11 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         }
         else if ("add_custom_block".equals(op)) {
             // Forward to EditEngine
-            mod.sdb.agente.SdbEditEngine.applyEdits(json.toString(), null);
+            mod.sdb.agente.SdbEditEngine.applyEdits(scId, json.toString(), null);
         }
         else {
             // Fallback for widgets etc if AI mixed them (rare in LogicEditor)
-            mod.sdb.agente.SdbEditEngine.applyEdits(json.toString(), null);
+            mod.sdb.agente.SdbEditEngine.applyEdits(scId, json.toString(), M.getXmlName(), id + "_" + eventName);
         }
     }
 
@@ -2052,26 +2170,32 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
             // Find the last block in the existing chain and snap this block onto it
             Rs rootBlock = o.getRoot();
             if (rootBlock != null) {
-                // Walk the chain to find the last block
+                // Attach new block as the next block of the last one
                 Rs lastBlock = rootBlock;
                 while (lastBlock.E != null) {
                     lastBlock = lastBlock.E;
                 }
-                // Attach new block as the next block of the last one
-                o.a(newBlock, 0, 0);
+                
+                // Add to view before attaching
+                o.a(newBlock, 0, 0); 
                 newBlock.setOnTouchListener(LogicEditorActivity.this);
+                
+                // Snap it
                 lastBlock.b(newBlock);
+                
+                // Propagate update and refresh layout
+                newBlock.k();
                 o.getRoot().k();
             } else {
                 // No root, set this as the root block
-                o.a(newBlock, 300, 300);
+                o.a(newBlock, 100, 100);
                 newBlock.setOnTouchListener(LogicEditorActivity.this);
-                // Force pane to recognize this as a root if possible
-                // In some Sketchware versions, adding a block to a pane with no root makes it root.
             }
             
-            o.b(); // Redraw
-            pro.sketchware.utility.SketchwareUtil.toast("Bloco de Código injetado na Lógica pelo SDBCodFlow!");
+            o.b(); // Redraw pane
+            o.invalidate();
+            E(); // Persiste o bloco no DB imediatamente (evita perda em recargas do receptor)
+            pro.sketchware.utility.SketchwareUtil.toast("Código injetado com sucesso!");
         });
     }
 
@@ -2107,35 +2231,7 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     public void onPostCreate(Bundle bundle) {
         super.onPostCreate(bundle);
 
-        String title;
-        if (eventName.equals("moreBlock")) {
-            title = getString(R.string.root_spec_common_define) + " " + ReturnMoreblockManager.getLogicEditorTitle(jC.a(scId).b(M.getJavaName(), id));
-        } else if (id.equals("_fab")) {
-            title = xB.b().a(getContext(), "fab", eventName);
-        } else {
-            title = xB.b().a(getContext(), id, eventName);
-        }
-        String e1 = title;
-
-        o.a(e1, eventName);
-
-        ArrayList<String> spec = FB.c(e1);
-        int blockId = 0;
-        for (int i = 0; i < spec.size(); i++) {
-            String specBit = spec.get(i);
-            if (specBit.charAt(0) == '%') {
-                Rs block = BlockUtil.getVariableBlock(getContext(), blockId + 1, specBit, "getArg");
-                if (block != null) {
-                    block.setBlockType(1);
-                    o.addView(block);
-                    o.getRoot().a((Ts) o.getRoot().V.get(blockId), block);
-                    block.setOnTouchListener(this);
-                    blockId++;
-                }
-            }
-        }
-
-        o.getRoot().k();
+        setupEventHeader();
         g(getResources().getConfiguration().orientation);
         a(0, 0xffee7d16);
 
@@ -2143,6 +2239,9 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         loadEventBlocksTask.execute();
 
         z();
+        
+        android.content.IntentFilter filter = new android.content.IntentFilter(mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT);
+        registerReceiver(refreshReceiver, filter);
     }
 
     @Override
@@ -2154,17 +2253,23 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            unregisterReceiver(refreshReceiver);
+        } catch (Exception ignored) {}
+    }
+
+    @Override
     public void onSaveInstanceState(Bundle bundle) {
         bundle.putString("sc_id", scId);
         bundle.putString("id", id);
         bundle.putString("event", eventName);
         bundle.putParcelable("project_file", M);
         super.onSaveInstanceState(bundle);
-        ArrayList<BlockBean> blocks = o.getBlocks();
-        eC a2 = jC.a(scId);
-        String javaName = M.getJavaName();
-        a2.a(javaName, id + "_" + eventName, blocks);
-        jC.a(scId).k();
+        
+        // Persiste os blocos ATUAIS no disco ao pausar/rodar tela etc.
+        E(); 
     }
 
     @Override
@@ -2571,14 +2676,21 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     }
 
     public void showSourceCode() {
-        yq yq = new yq(this, scId);
-        yq.a(jC.c(scId), jC.b(scId), jC.a(scId));
-        String code = new Fx(M.getActivityName(), yq.N, o.getBlocks(), isViewBindingEnabled).a();
-        var intent = new Intent(this, CodeViewerActivity.class);
-        intent.putExtra("code", code);
-        intent.putExtra("sc_id", scId);
-        intent.putExtra("scheme", CodeViewerActivity.SCHEME_JAVA);
-        startActivity(intent);
+        try {
+            yq yq = new yq(this, scId);
+            yq.a(jC.c(scId), jC.b(scId), jC.a(scId));
+            String code = new Fx(M.getActivityName(), yq.N, o.getBlocks(), isViewBindingEnabled).a();
+            var intent = new Intent(this, CodeViewerActivity.class);
+            intent.putExtra("code", code);
+            intent.putExtra("sc_id", scId);
+            intent.putExtra("scheme", CodeViewerActivity.SCHEME_JAVA);
+            intent.putExtra("java_name", M.getJavaName());
+            intent.putExtra("event_name", eventName);
+            intent.putExtra("id", id);
+            startActivity(intent);
+        } catch (OutOfMemoryError | StackOverflowError e) {
+            pro.sketchware.utility.SketchwareUtil.toast("Não foi possível gerar o código-fonte.");
+        }
     }
 
     public void t() {

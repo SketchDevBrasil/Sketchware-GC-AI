@@ -401,7 +401,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             if (isFileInLayoutFolder() && getIntent().hasExtra("sc_id")) {
                 toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Layout Preview");
             }
-            toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "SDBCodFlow").setIcon(pro.sketchware.R.drawable.ic_gemini_logo).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "SDBCodFlow").setIcon(pro.sketchware.R.drawable.ic_sdbcodflow_sparkle_img).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Find & Replace");
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Word wrap").setCheckable(true).setChecked(local_pref.getBoolean("act_ww", false));
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Pretty print");

@@ -35,15 +35,16 @@
             android:layout_height="wrap_content"
             android:maxWidth="300dp"
             android:textColor="?attr/colorOnSurface"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textIsSelectable="true" />
     </com.google.android.material.card.MaterialCardView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/chat_action_btn"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/chat_actions_container"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:visibility="gone"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        android:orientation="horizontal"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -25,24 +25,62 @@
                 app:icon="@drawable/ic_mtrl_close"
                 app:iconTint="?attr/colorOnPrimary" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_info"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_toEndOf="@id/btn_back"
+                android:layout_centerVertical="true"
+                style="@style/Widget.Material3.Button.IconButton"
+                app:icon="@drawable/ic_mtrl_info"
+                app:iconSize="20dp"
+                app:iconTint="?attr/colorOnPrimary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_lang"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_toEndOf="@id/btn_info"
+                android:layout_centerVertical="true"
+                android:text="PT"
+                android:textSize="11sp"
+                android:textColor="?attr/colorOnPrimary"
+                android:paddingHorizontal="6dp"
+                style="@style/Widget.Material3.Button.TextButton" />
+
             <TextView
                 android:id="@+id/tv_title"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
+                android:layout_toEndOf="@id/btn_lang"
+                android:layout_toStartOf="@id/btn_history"
+                android:gravity="center"
                 android:text="SDBCodFlow"
                 android:textColor="?attr/colorOnPrimary"
                 android:textStyle="bold"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:singleLine="true"
+                android:ellipsize="marquee" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_history"
+                android:id="@+id/btn_new_chat"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 style="@style/Widget.Material3.Button.IconButton"
-                app:icon="@drawable/ic_mtrl_chat"
+                app:icon="@drawable/ic_mtrl_add"
+                app:iconTint="?attr/colorOnPrimary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_history"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_toStartOf="@id/btn_new_chat"
+                android:layout_centerVertical="true"
+                style="@style/Widget.Material3.Button.IconButton"
+                app:icon="@drawable/ic_mtrl_settings"
                 app:iconTint="?attr/colorOnPrimary" />
         </RelativeLayout>
 
@@ -80,47 +118,51 @@
                 android:layout_marginBottom="8dp"
                 android:background="#44888888" />
 
-            <!-- Action Chips -->
+            <!-- Intent Selection Chips -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:scrollbars="none"
                 android:paddingHorizontal="16dp"
                 android:layout_marginBottom="8dp">
-
                 <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_actions"
+                    android:id="@+id/chip_group_intent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:singleSelection="true">
-
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_optimize"
-                        style="@style/Widget.Material3.Chip.Assist"
+                        android:id="@+id/intent_auto"
+                        style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⚡ Otimizar" />
-
+                        android:text="🤖 Auto"
+                        android:checked="true" />
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_fix"
-                        style="@style/Widget.Material3.Chip.Assist"
+                        android:id="@+id/intent_inject"
+                        style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🛠️ Corrigir" />
-
+                        android:text="💉 Injetar Código" />
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_explain"
-                        style="@style/Widget.Material3.Chip.Assist"
+                        android:id="@+id/intent_moreblock"
+                        style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="📖 Explicar" />
-
+                        android:text="📦 MoreBlock" />
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_new"
-                        style="@style/Widget.Material3.Chip.Assist"
+                        android:id="@+id/intent_design"
+                        style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="➕ Novo Chat" />
+                        android:text="🎨 Design/Ícones" />
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/intent_support"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:chipIcon="@drawable/ic_mtrl_star"
+                        android:text="❤️ Apoiar" />
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
 
@@ -195,7 +237,16 @@
                         style="@style/Widget.Material3.Button.IconButton"
                         app:icon="@drawable/ic_mtrl_add" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_prompts"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        app:icon="@drawable/ic_mtrl_expand"
+                        app:iconTint="?attr/colorPrimary" />
+
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/input_layout"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"

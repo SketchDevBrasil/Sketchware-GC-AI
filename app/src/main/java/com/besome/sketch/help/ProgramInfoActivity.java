@@ -124,9 +124,9 @@ public class ProgramInfoActivity extends BaseAppCompatActivity {
                     case ITEM_SUGGEST_IDEAS ->
                             openUrl(Helper.getResString(R.string.link_ideas_url));
                     case ITEM_TELEGRAM ->
-                            openUrl("https://t.me/sketchdevbrasil_comunidade");
-                    case ITEM_YOUTUBE -> openUrl("https://youtube.com/@sketchdevbrasil?si=XYhbecP2M3YhNUwp");
-                    case ITEM_SITE -> openUrl("https://sketch-dev-brasil.web.app/SdbCodFlow");
+                            openUrl("https://t.me/sketchdevbrasil");
+                    case ITEM_YOUTUBE -> openUrl("https://youtube.com/@sketchdevbrasil");
+                    case ITEM_SITE -> openUrl("https://sketch-dev-brasil.web.app/sdbcodflow");
                 }
             }
         }
@@ -145,8 +145,8 @@ public class ProgramInfoActivity extends BaseAppCompatActivity {
 
         addSingleLineItem(ITEM_SOCIAL_NETWORK, R.string.title_community);
         addTwoLineItem(ITEM_YOUTUBE, "YouTube", "https://youtube.com/@sketchdevbrasil");
-        addTwoLineItem(ITEM_TELEGRAM, "Telegram", "https://t.me/sketchdevbrasil_comunidade");
-        addTwoLineItem(ITEM_SITE, "Site", "https://sketch-dev-brasil.web.app/SdbCodFlow");
+        addTwoLineItem(ITEM_TELEGRAM, "Telegram", "https://t.me/sketchdevbrasil");
+        addTwoLineItem(ITEM_SITE, "Site", "https://sketch-dev-brasil.web.app/sdbcodflow");
         addSingleLineItem(ITEM_SYSTEM_INFORMATION, R.string.program_information_title_system_information);
         addSingleLineItem(ITEM_OPEN_SOURCE_LICENSES, R.string.program_information_title_open_source_license, true);
     }

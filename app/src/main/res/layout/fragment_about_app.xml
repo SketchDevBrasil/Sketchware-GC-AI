@@ -19,4 +19,18 @@
         android:paddingBottom="90dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/about_teamview" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_translate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="PT BR"
+        android:contentDescription="Translate to PT BR"
+        app:icon="@drawable/ic_translate"
+        app:iconTint="@android:color/white"
+        tools:ignore="ContentDescription" />
 </RelativeLayout>

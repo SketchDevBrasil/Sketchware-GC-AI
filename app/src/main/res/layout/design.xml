@@ -58,9 +58,10 @@
                     android:id="@+id/fab_agente"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|start"
-                    android:layout_margin="16dp"
-                    app:srcCompat="@drawable/ic_sdbcodflow_sparkle"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="96dp"
+                    android:layout_marginBottom="16dp"
+                    app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
                     app:backgroundTint="?attr/colorPrimaryContainer"
                     app:tint="?attr/colorOnPrimaryContainer"
                     android:contentDescription="Agente AI" />

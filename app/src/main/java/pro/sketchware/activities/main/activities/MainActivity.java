@@ -22,6 +22,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.core.app.ActivityCompat;
 import androidx.core.splashscreen.SplashScreen;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -68,7 +70,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private ProjectsFragment projectsFragment;
     private Fragment activeFragment;
     @IdRes
-    private int currentNavItemId = R.id.item_projects;
+    private int currentNavItemId = R.id.item_store;
 
 
     @Override
@@ -255,14 +257,23 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             if (!isFinishing()) bottomSheetDialog.show();
         }
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.item_projects) {
-                navigateToProjectsFragment();
-                return true;
-            }
-            return false;
+        // Custom link bar — apply system nav bar insets from root so CoordinatorLayout doesn't swallow them
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+            int bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+            binding.bottomLinkBar.setPadding(0, 0, 0, bottomInset);
+            // Keep FAB above the bar (56dp bar height + inset + 8dp gap)
+            int fabBottomMargin = bottomInset + (int)(56 * getResources().getDisplayMetrics().density) + (int)(8 * getResources().getDisplayMetrics().density);
+            androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams fabParams =
+                (androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams) binding.createNewProject.getLayoutParams();
+            fabParams.bottomMargin = fabBottomMargin;
+            binding.createNewProject.setLayoutParams(fabParams);
+            return insets;
         });
+
+        binding.btnLinkStore.setOnClickListener(v -> openUrl("https://sketch-dev-brasil.web.app/home"));
+        binding.btnLinkTelegram.setOnClickListener(v -> openUrl("https://t.me/sketchdevbrasil"));
+        binding.btnLinkYoutube.setOnClickListener(v -> openUrl("https://youtube.com/@sketchdevbrasil"));
+        binding.btnLinkUpdates.setOnClickListener(v -> openUrl("https://sketch-dev-brasil.web.app/sdbcodflow"));
 
         if (savedInstanceState != null) {
             projectsFragment = (ProjectsFragment) getSupportFragmentManager().findFragmentByTag(PROJECTS_FRAGMENT_TAG);
@@ -274,11 +285,12 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         navigateToProjectsFragment();
     }
 
+    private void openUrl(String url) {
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+    }
+
     private Fragment getFragmentForNavId(int navItemId) {
-        if (navItemId == R.id.item_projects) {
-            return projectsFragment;
-        }
-        throw new IllegalArgumentException();
+        return projectsFragment;
     }
 
     @Override
@@ -306,19 +318,20 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         transaction.commit();
 
         activeFragment = projectsFragment;
-        currentNavItemId = R.id.item_projects;
+        currentNavItemId = R.id.item_store;
     }
 
 
     @NonNull
     private BottomSheetDialogView getBottomSheetDialogView() {
         BottomSheetDialogView bottomSheetDialog = new BottomSheetDialogView(this);
-        bottomSheetDialog.setTitle("Major changes in v7.0.0");
+        bottomSheetDialog.setTitle("Sketchware Pro SDBCodFlow v8.7.7");
         bottomSheetDialog.setDescription("""
-                There have been major changes since v6.3.0 fix1, \
-                and it's very important to know them all if you want your projects to still work.
+                Bem-vindo ao Sketchware Pro SDBCodFlow! Esta versão traz melhorias críticas de estabilidade \
+                e a integração avançada da IA Agente SDB.
                 
-                You can view all changes whenever you want at the About Sketchware Pro screen.""");
+                Agora você pode usar IA para injetar lógica diretamente no seu projeto and ver previews do código antes de aplicar.""");
+        bottomSheetDialog.setImage(R.drawable.ic_sdbcodflow_sparkle_img);
 
         bottomSheetDialog.setPositiveButton("View changes", (dialog, which) -> {
             ConfigActivity.setSetting(ConfigActivity.SETTING_CRITICAL_UPDATE_REMINDER, true);

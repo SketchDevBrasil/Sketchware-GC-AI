@@ -71,12 +71,14 @@ public class AboutResponseModel {
     public static class ChangeLogs {
         private String title;
         private String description;
+        private String descriptionPt;
         private long releaseDate;
         private boolean isBeta;
         private boolean isTitled;
 
         public void setTitle(String title) { this.title = title; }
         public void setDescription(String description) { this.description = description; }
+        public void setDescriptionPt(String descriptionPt) { this.descriptionPt = descriptionPt; }
         public void setReleaseDate(long releaseDate) { this.releaseDate = releaseDate; }
         public void setBeta(boolean beta) { this.isBeta = beta; }
         public void setTitled(boolean titled) { this.isTitled = titled; }
@@ -87,6 +89,10 @@ public class AboutResponseModel {
 
         public String getDescription() {
             return description;
+        }
+
+        public String getDescriptionPt() {
+            return descriptionPt != null ? descriptionPt : description;
         }
 
         public long getReleaseDate() {

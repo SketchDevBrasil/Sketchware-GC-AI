@@ -66,7 +66,7 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
         itemAutocompleteSymbolPair.setChecked(pref.getBoolean("dlg_acsp", true));
 
         menu.add(Menu.NONE, 999, Menu.NONE, "AI Agente")
-                .setIcon(androidx.appcompat.content.res.AppCompatResources.getDrawable(act, R.drawable.ic_ai_agente_24dp))
+                .setIcon(androidx.appcompat.content.res.AppCompatResources.getDrawable(act, R.drawable.ic_sdbcodflow_sparkle_img))
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 
         binding.toolbar.setOnMenuItemClickListener(item -> {
@@ -113,9 +113,11 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
                 binding.editor.beginSearchMode();
             } else if (id == 999) {
                 if (act instanceof com.besome.sketch.editor.LogicEditorActivity) {
+                    com.besome.sketch.editor.LogicEditorActivity logicAct = (com.besome.sketch.editor.LogicEditorActivity) act;
                     mod.sdb.agente.SdbAgenteChatSheet chatSheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceForCode(
-                            ((com.besome.sketch.editor.LogicEditorActivity) act).scId, 
+                            logicAct.scId, 
                             "Add Source Directly", 
+                            logicAct.M.getXmlName(), // Pass XML context via public field M
                             binding.editor.getText().toString(), 
                             newCode -> binding.editor.setText(newCode));
                     chatSheet.show(((com.besome.sketch.lib.base.BaseAppCompatActivity) act).getSupportFragmentManager(), "SdbAgenteChatSheet");

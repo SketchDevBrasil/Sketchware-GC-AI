@@ -205,6 +205,18 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             }
         }
     };
+    private final BroadcastReceiver refreshReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT.equals(intent.getAction())) {
+                String scId = intent.getStringExtra("sc_id");
+                if (sc_id != null && sc_id.equals(scId)) {
+                    refresh();
+                    SketchwareUtil.toast("Projeto atualizado pelo Agente!");
+                }
+            }
+        }
+    };
 
     /**
      * Saves the app's version information to the currently opened Sketchware project file.
@@ -576,10 +588,13 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         findViewById(R.id.fab_agente).setOnClickListener(v -> toSdbCodFlow());
 
         IntentFilter filter = new IntentFilter(BuildTask.ACTION_CANCEL_BUILD);
+        IntentFilter refreshFilter = new IntentFilter(mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(buildCancelReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(refreshReceiver, refreshFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(buildCancelReceiver, filter);
+            registerReceiver(refreshReceiver, refreshFilter);
         }
 
     }
@@ -606,6 +621,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(buildCancelReceiver);
+        try {
+            unregisterReceiver(refreshReceiver);
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -796,7 +814,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     return;
                 }
                 var scheme = filename.endsWith(".xml") ? CodeViewerActivity.SCHEME_XML : CodeViewerActivity.SCHEME_JAVA;
-                launchActivity(CodeViewerActivity.class, null, new Pair<>("code", code), new Pair<>("sc_id", sc_id), new Pair<>("scheme", scheme));
+                launchActivity(CodeViewerActivity.class, null, 
+                        new Pair<>("code", code), 
+                        new Pair<>("sc_id", sc_id), 
+                        new Pair<>("scheme", scheme),
+                        new Pair<>("java_name", projectFile.getJavaName()),
+                        new Pair<>("xml_name", projectFile.getXmlName()));
             });
         }).start();
     }
@@ -833,6 +856,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
      * Opens {@link ViewCodeEditorActivity}.
      */
     void toViewCodeEditor() {
+        toViewCodeEditor(false);
+    }
+
+    void toViewCodeEditor(boolean autoOpenAgente) {
         if (projectFile == null) return;
         k();
         new Thread(() -> {
@@ -848,7 +875,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             runOnUiThread(() -> {
                 if (isFinishing()) return;
                 h();
-                launchActivity(ViewCodeEditorActivity.class, openViewCodeEditor, new Pair<>("title", filename), new Pair<>("content", content));
+                launchActivity(ViewCodeEditorActivity.class, openViewCodeEditor, 
+                    new Pair<>("title", filename), 
+                    new Pair<>("content", content),
+                    new Pair<>("auto_open_agente", String.valueOf(autoOpenAgente)));
             });
         }).start();
     }
@@ -967,17 +997,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         launchActivity(ManageLibraryActivity.class, openLibraryManager);
     }
 
-    /**
-     * Opens {@link mod.sdb.agente.SdbAgenteActivity}.
-     */
     void toSdbCodFlow() {
-        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
-            sc_id, 
-            projectFile.getJavaName(), 
-            projectFile.getXmlName(), 
-            () -> refresh()
-        );
-        sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
+        toViewCodeEditor(true);
     }
 
     /**

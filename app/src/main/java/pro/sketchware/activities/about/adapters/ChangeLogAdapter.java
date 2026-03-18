@@ -28,9 +28,19 @@ public class ChangeLogAdapter extends RecyclerView.Adapter<ChangeLogAdapter.View
 
     private final ArrayList<AboutResponseModel.ChangeLogs> changelog;
     private final Set<Integer> showingAdditionalInfoPositions = new HashSet<>();
+    private boolean showPortuguese = false;
 
     public ChangeLogAdapter(ArrayList<AboutResponseModel.ChangeLogs> data) {
         changelog = data;
+    }
+
+    public void toggleLanguage() {
+        showPortuguese = !showPortuguese;
+        notifyDataSetChanged();
+    }
+
+    public boolean isShowingPortuguese() {
+        return showPortuguese;
     }
 
     @Override
@@ -81,7 +91,7 @@ public class ChangeLogAdapter extends RecyclerView.Adapter<ChangeLogAdapter.View
             holder.binding.tvReleaseNote.setVisibility(View.GONE);
         }
 
-        String description = release.getDescription();
+        String description = showPortuguese ? release.getDescriptionPt() : release.getDescription();
         if (description != null) {
             holder.binding.tvSubTitle.setText(description);
             Linkify.addLinks(holder.binding.tvSubTitle, Linkify.WEB_URLS);

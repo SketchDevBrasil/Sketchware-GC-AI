@@ -108,6 +108,26 @@ public class BlocksManager extends BaseAppCompatActivity {
         binding.paletteRecycler.setLayoutManager(new LinearLayoutManager(this));
         binding.paletteRecycler.setAdapter(new PaletteAdapter(pallet_listmap));
         binding.fab.setOnClickListener(v -> showPaletteDialog(false, null, null, "#ffffff", null));
+        binding.fabAgente.setOnClickListener(v -> {
+            String context = "Você está na tela inicial do GERENCIADOR DE BLOCOS.\n"
+                + "Aqui você gerencia PALETAS (Coleções de blocos).\n"
+                + "Objetivo: Ajudar o usuário a criar novas coleções de blocos.\n"
+                + "Para criar uma nova paleta, use a operação 'add_custom_block' e defina 'palette_name' como o nome da nova coleção e 'palette_color' para a cor.\n"
+                + "Você pode sugerir blocos iniciais úteis para essa nova coleção.\n"
+                + "Coleções existentes:\n"
+                + getGson().toJson(pallet_listmap);
+            
+            mod.sdb.agente.SdbAgenteChatSheet chat = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
+                "global",
+                "Gerenciador de Coleções",
+                null,
+                context,
+                json -> {
+                    refreshList();
+                }
+            );
+            chat.show(getSupportFragmentManager(), "agente_chat");
+        });
 
         readSettings();
         refreshList();

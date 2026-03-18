@@ -16,6 +16,7 @@ import pro.sketchware.databinding.FragmentAboutAppBinding;
 public class ChangeLogFragment extends Fragment {
     private FragmentAboutAppBinding binding;
     private AboutAppViewModel aboutAppData;
+    private ChangeLogAdapter changeLogAdapter;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -35,8 +36,17 @@ public class ChangeLogFragment extends Fragment {
     private void initViews() {
         aboutAppData.getChangelog().observe(getViewLifecycleOwner(), changeLogsArrayList -> {
             if (changeLogsArrayList != null && !changeLogsArrayList.isEmpty()) {
-                binding.list.setAdapter(new ChangeLogAdapter(changeLogsArrayList));
+                changeLogAdapter = new ChangeLogAdapter(changeLogsArrayList);
+                binding.list.setAdapter(changeLogAdapter);
             }
+        });
+
+        binding.btnTranslate.setOnClickListener(v -> {
+            if (changeLogAdapter == null) return;
+            changeLogAdapter.toggleLanguage();
+            boolean isPt = changeLogAdapter.isShowingPortuguese();
+            binding.btnTranslate.setText(isPt ? "EN" : "PT BR");
+            binding.btnTranslate.setContentDescription(isPt ? "Translate to EN" : "Translate to PT BR");
         });
     }
 }

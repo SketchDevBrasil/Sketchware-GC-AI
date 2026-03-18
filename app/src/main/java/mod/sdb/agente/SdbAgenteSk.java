@@ -13,7 +13,9 @@ public class SdbAgenteSk {
     private static final String PREF_NAME = "SDB_CODFLOW_CONFIG";
     private static final String KEY_API_KEY = "api_key";
     private static final String KEY_MODEL = "chat_model";
-    private static final String DEFAULT_MODEL = "gemini-1.5-flash";
+    private static final String KEY_CODE_EDITOR_ACCESS = "code_editor_access";
+    private static final String KEY_LANGUAGE = "chat_language";
+    private static final String DEFAULT_MODEL = "";
     
     private final Context context;
     private final String sc_id;
@@ -41,10 +43,28 @@ public class SdbAgenteSk {
     public String getChatModel() {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         String model = prefs.getString(KEY_MODEL, DEFAULT_MODEL);
+        if (model.equals("gemini-1.5-flash")) {
+            return "";
+        }
         if (model.startsWith("models/")) {
             model = model.substring(7);
         }
         return model;
+    }
+
+    public void setLanguage(String lang) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+               .edit().putString(KEY_LANGUAGE, lang).apply();
+    }
+
+    public String getLanguage() {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                      .getString(KEY_LANGUAGE, "pt");
+    }
+
+    public static String getLanguage(Context ctx) {
+        return ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                  .getString(KEY_LANGUAGE, "pt");
     }
 
     public void testConnection(ResponseListener listener) {
@@ -54,6 +74,17 @@ public class SdbAgenteSk {
     public interface ResponseListener {
         void onResponse(String response);
         void onError(String error);
+    }
+
+    public void incrementCodeEditorAccess() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        int current = prefs.getInt(KEY_CODE_EDITOR_ACCESS, 0);
+        prefs.edit().putInt(KEY_CODE_EDITOR_ACCESS, current + 1).apply();
+    }
+
+    public int getCodeEditorAccess() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(KEY_CODE_EDITOR_ACCESS, 0);
     }
 
     public void ask(String question, String contextInfo, ResponseListener listener) {

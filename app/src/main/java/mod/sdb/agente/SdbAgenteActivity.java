@@ -102,10 +102,7 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
     }
 
     private void setupChips() {
-        findViewById(R.id.chip_optimize).setOnClickListener(v -> inputText.setText("⚡ Otimizar: " + inputText.getText().toString()));
-        findViewById(R.id.chip_fix).setOnClickListener(v -> inputText.setText("🛠️ Corrigir: " + inputText.getText().toString()));
-        findViewById(R.id.chip_explain).setOnClickListener(v -> inputText.setText("📖 Explicar: " + inputText.getText().toString()));
-        findViewById(R.id.chip_new).setOnClickListener(v -> {
+        findViewById(R.id.btn_new_chat).setOnClickListener(v -> {
             new MaterialAlertDialogBuilder(this)
                 .setTitle("Nova Conversa")
                 .setMessage("Deseja iniciar um novo chat? O histórico atual será salvo.")
@@ -243,7 +240,7 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
                     // Try to apply edits if AI returned JSON
                     if (response.trim().startsWith("{") && response.contains("\"scId\"") && response.contains("\"edits\"")) {
                         try {
-                            if (SdbEditEngine.applyEdits(response, null)) {
+                            if (SdbEditEngine.applyEdits(sc_id, response, null)) {
                                 addMessage(new ChatMessage("✅ **Edições aplicadas com sucesso!**", false), true);
                                 SketchwareUtil.toast("Edições aplicadas no projeto!");
                             } else {
@@ -396,7 +393,6 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
             .setPositiveButton("Salvar", (d, w) -> {
                 String key = inputKey.getText().toString().trim();
                 String model = inputModel.getText().toString().trim();
-                if (model.isEmpty()) model = "gemini-1.5-flash";
                 
                 agente.setApiKey(key);
                 agente.setChatModel(model);
@@ -406,24 +402,39 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
             .show();
     }
 
+    public static class ChatAction {
+        public String type;
+        public String text;
+        public transient Runnable runnable;
+
+        public ChatAction(String type, String text, Runnable runnable) {
+            this.type = type;
+            this.text = text;
+            this.runnable = runnable;
+        }
+    }
+
     public static class ChatMessage {
         public String text;
         public boolean isUser;
+        public boolean isAd = false;
         public String base64Image;
         public String mimeType;
-        public String actionType;
-        public String actionText;
-        public transient Runnable actionRunnable;
+        public List<ChatAction> actions = new ArrayList<>();
         
         public ChatMessage(String text, boolean isUser) {
             this.text = text;
             this.isUser = isUser;
         }
 
-        public ChatMessage setAction(String type, String text, Runnable action) {
-            this.actionType = type;
-            this.actionText = text;
-            this.actionRunnable = action;
+        public ChatMessage(boolean isAd) {
+            this.isAd = isAd;
+            this.text = "";
+            this.isUser = false;
+        }
+
+        public ChatMessage addAction(String type, String text, Runnable action) {
+            this.actions.add(new ChatAction(type, text, action));
             return this;
         }
     }
@@ -462,14 +473,26 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
                 holder.image.setVisibility(View.GONE);
             }
 
-            if (holder.actionBtn != null) {
-                if (msg.actionType != null && msg.actionText != null && msg.actionRunnable != null) {
-                    holder.actionBtn.setVisibility(View.VISIBLE);
-                    holder.actionBtn.setText(msg.actionText);
-                    holder.actionBtn.setOnClickListener(v -> msg.actionRunnable.run());
+            if (holder.actionsContainer != null) {
+                holder.actionsContainer.removeAllViews();
+                if (msg.actions != null && !msg.actions.isEmpty()) {
+                    holder.actionsContainer.setVisibility(View.VISIBLE);
+                    for (ChatAction action : msg.actions) {
+                        com.google.android.material.button.MaterialButton btn = new com.google.android.material.button.MaterialButton(
+                            holder.itemView.getContext(), null, pro.sketchware.R.attr.borderlessButtonStyle);
+                        btn.setText(action.text);
+                        btn.setAllCaps(false);
+                        btn.setOnClickListener(v -> {
+                            if (action.runnable != null) action.runnable.run();
+                        });
+                        
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                        lp.setMarginEnd((int)(8 * holder.itemView.getContext().getResources().getDisplayMetrics().density));
+                        holder.actionsContainer.addView(btn, lp);
+                    }
                 } else {
-                    holder.actionBtn.setVisibility(View.GONE);
-                    holder.actionBtn.setOnClickListener(null);
+                    holder.actionsContainer.setVisibility(View.GONE);
                 }
             }
         }
@@ -479,12 +502,12 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
     private static class ChatViewHolder extends RecyclerView.ViewHolder {
         public TextView text;
         public android.widget.ImageView image;
-        public com.google.android.material.button.MaterialButton actionBtn;
+        public android.widget.LinearLayout actionsContainer;
         public ChatViewHolder(View v) { 
             super(v); 
-            text = v.findViewById(R.id.chat_text);
-            image = v.findViewById(R.id.chat_image);
-            actionBtn = v.findViewById(R.id.chat_action_btn);
+            text = v.findViewById(pro.sketchware.R.id.chat_text);
+            image = v.findViewById(pro.sketchware.R.id.chat_image);
+            actionsContainer = v.findViewById(pro.sketchware.R.id.chat_actions_container);
             text.setOnLongClickListener(view -> {
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) 
                         v.getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);

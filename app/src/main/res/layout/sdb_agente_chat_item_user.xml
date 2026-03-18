@@ -34,7 +34,8 @@
             android:layout_height="wrap_content"
             android:maxWidth="280dp"
             android:textColor="?attr/colorOnPrimary"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textIsSelectable="true" />
     </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

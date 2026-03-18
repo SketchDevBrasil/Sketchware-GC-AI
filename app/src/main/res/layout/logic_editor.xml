@@ -85,10 +85,10 @@
         android:layout_alignParentBottom="true"
         android:layout_marginEnd="96dp"
         android:layout_marginBottom="16dp"
-        app:srcCompat="@drawable/ic_sdbcodflow_sparkle"
+        app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
         app:fabSize="normal"
-        app:backgroundTint="?attr/colorPrimaryContainer"
-        app:tint="?attr/colorOnPrimaryContainer"
+        app:backgroundTint="@color/color_primary"
+        app:tint="@android:color/white"
         android:contentDescription="Agente AI"
         tools:ignore="ContentDescription" />
 

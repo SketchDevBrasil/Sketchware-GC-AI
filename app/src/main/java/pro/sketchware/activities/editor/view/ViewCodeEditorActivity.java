@@ -114,7 +114,7 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         editor.setTextSize(14);
         editor.setText(content);
         EditorUtils.loadXmlConfig(editor);
-        if (projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY
+        if (projectFile != null && projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY
                 && projectLibrary.isEnabled()) {
             setNote("Use AppCompat Manager to modify attributes for CoordinatorLayout, Toolbar, and other appcompat layout/widget.");
         }
@@ -125,6 +125,11 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         binding.noteCard.setOnClickListener(v -> toAppCompat());
 
         binding.fabAgente.setOnClickListener(v -> showAiCodeEditDialog());
+
+        String autoOpen = getIntent().getStringExtra("auto_open_agente");
+        if ("true".equals(autoOpen)) {
+            binding.getRoot().post(() -> showAiCodeEditDialog());
+        }
     }
 
     @Override
@@ -144,7 +149,7 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         menu.add(Menu.NONE, 2, Menu.NONE, "Save")
                 .setIcon(AppCompatResources.getDrawable(this, R.drawable.ic_mtrl_save))
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        if (projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY
+        if (projectFile != null && projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY
                 && projectLibrary.isEnabled()) {
             menu.add(Menu.NONE, 3, Menu.NONE, "Edit AppCompat");
         }
@@ -286,12 +291,14 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         String title = getIntent().getStringExtra("title");
         mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceForCode(
             sc_id, 
-            "XML: " + title, 
+            "Design Editor: " + title, 
+            title, // context_xml_name
             editor.getText().toString(), 
             newCode -> {
                 runOnUiThread(() -> {
                     editor.setText(newCode);
-                    SketchwareUtil.toast("XML atualizado pelo Agente");
+                    boolean pt = "pt".equals(mod.sdb.agente.SdbAgenteSk.getLanguage(getApplicationContext()));
+                    SketchwareUtil.toast(pt ? "Código atualizado pelo Agente" : "Code updated by Agent");
                 });
             }
         );

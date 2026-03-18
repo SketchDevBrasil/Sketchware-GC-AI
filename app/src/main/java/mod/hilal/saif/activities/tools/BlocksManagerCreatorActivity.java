@@ -65,12 +65,16 @@ public class BlocksManagerCreatorActivity extends BaseAppCompatActivity {
     private String palletColour = "";
     private String path = "";
 
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fab_agente;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        enableEdgeToEdgeNoContrast();
         super.onCreate(savedInstanceState);
         binding = ActivityBlocksManagerCreatorBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        
+        fab_agente = findViewById(R.id.fab_agente);
+        
         initialize();
         initializeLogic();
     }
@@ -225,6 +229,30 @@ public class BlocksManagerCreatorActivity extends BaseAppCompatActivity {
             }
             v.onTouchEvent(event);
             return true;
+        });
+        
+        fab_agente.setOnClickListener(v -> {
+            String currentSpec = Helper.getText(binding.spec);
+            String currentType = Helper.getText(binding.type);
+            String currentCode = Helper.getText(binding.code);
+            String currentName = Helper.getText(binding.name);
+            
+            String context = "Você está editando um BLOCO CUSTOMIZADO individual.\n"
+                + "Nome: " + currentName + "\n"
+                + "Spec: " + currentSpec + "\n"
+                + "Tipo: " + currentType + " ( " + (currentType.equals(" regular") ? "void" : currentType) + ")\n"
+                + "Objetivo: Ajudar o usuário a escrever o código Java (Block embedded code) para este bloco.\n"
+                + "Lembre-se de usar %1$s, %2$s para parâmetros conforme a Spec.";
+            
+            mod.sdb.agente.SdbAgenteChatSheet chat = mod.sdb.agente.SdbAgenteChatSheet.newInstanceForCode(
+                "global",
+                "Bloco: " + currentName,
+                currentCode,
+                newCode -> {
+                    binding.code.setText(newCode);
+                }
+            );
+            chat.show(getSupportFragmentManager(), "agente_chat");
         });
     }
 

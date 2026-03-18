@@ -61,6 +61,7 @@ public class BlocksManagerDetailsActivity extends BaseAppCompatActivity {
     private ListView block_list;
     private LinearLayout background;
     private com.google.android.material.floatingactionbutton.FloatingActionButton fab_button;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fab_agente;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,6 +71,7 @@ public class BlocksManagerDetailsActivity extends BaseAppCompatActivity {
         background = findViewById(R.id.background);
         block_list = findViewById(R.id.block_list);
         fab_button = findViewById(R.id.fab_button);
+        fab_agente = findViewById(R.id.fab_agente);
 
         initialize();
         _receive_intents();
@@ -96,6 +98,34 @@ public class BlocksManagerDetailsActivity extends BaseAppCompatActivity {
             } else {
                 SketchwareUtil.toastError("Invalid color of palette #" + (palette - 9));
             }
+        });
+        
+        fab_agente.setOnClickListener(v -> {
+            String sc_id = getIntent().getStringExtra("sc_id");
+            if (sc_id == null) sc_id = "global";
+            
+            Object paletteName = pallet_list.get(palette - 9).get("name");
+            String pName = (paletteName instanceof String) ? (String) paletteName : "Desconhecida";
+            
+            String blocksContext = "Você está no GERENCIADOR DE BLOCOS.\n"
+                + "Paleta: " + pName + "\n"
+                + "Caminho: " + blocks_path + "\n"
+                + "Blocos atuais nesta paleta:\n"
+                + getGson().toJson(filtered_list);
+            
+            mod.sdb.agente.SdbAgenteChatSheet chat = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
+                sc_id,
+                "Gerenciador de Blocos: " + pName,
+                null,
+                blocksContext,
+                json -> {
+                    // Após a aplicação do JSON pelo SdbEditEngine (que acontece via SdbAgenteChatSheet),
+                    // precisamos atualizar a lista nesta Activity.
+                    // O SdbAgenteChatSheet já injeta via SdbEditEngine.
+                    _refreshLists();
+                }
+            );
+            chat.show(getSupportFragmentManager(), "agente_chat");
         });
     }
 

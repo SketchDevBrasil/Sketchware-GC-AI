@@ -1,8 +1,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/item_projects"
-        android:icon="@drawable/ic_mtrl_list"
-        android:title="Projects" />
+        android:id="@+id/item_store"
+        android:icon="@drawable/ic_store"
+        android:title="Store" />
+
+    <item
+        android:id="@+id/item_telegram"
+        android:icon="@drawable/ic_telegram"
+        android:title="Telegram" />
+
+    <item
+        android:id="@+id/item_youtube"
+        android:icon="@drawable/ic_mtrl_youtube"
+        android:title="YouTube" />
+
+    <item
+        android:id="@+id/item_website"
+        android:icon="@drawable/ic_mtrl_web"
+        android:title="Website" />
 
 </menu>

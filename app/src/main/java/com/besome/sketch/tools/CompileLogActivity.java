@@ -114,10 +114,11 @@ public class CompileLogActivity extends BaseAppCompatActivity {
                     "```\\n" + logText + "\\n```\\n\\n" +
                     "Ajude a identificar o porquê desses erros e forneça instruções claras de como corrigi-los no projeto.";
             
-            mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
+            mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
                     sc_id,
                     "Compile Log",
-                    contextInfo,
+                    "main.xml",
+                    null, 
                     (instruction) -> {
                         pro.sketchware.utility.SketchwareUtil.toast("Comando não suportado no Compile Log.");
                     }
