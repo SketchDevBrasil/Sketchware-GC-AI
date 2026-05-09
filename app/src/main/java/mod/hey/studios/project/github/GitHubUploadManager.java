@@ -15,7 +15,6 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
 import java.util.Map;
 
 import mod.hey.studios.project.backup.BackupFactory;
@@ -23,6 +22,7 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.DialogGithubLoginBinding;
 import pro.sketchware.databinding.DialogGithubUploadBinding;
 import pro.sketchware.databinding.ProgressMsgBoxBinding;
+import pro.sketchware.utility.Network;
 import pro.sketchware.utility.SketchwareUtil;
 
 public class GitHubUploadManager {
@@ -54,28 +54,37 @@ public class GitHubUploadManager {
                 return;
             }
 
-            GitHubApiClient client = new GitHubApiClient(token);
-            client.validateToken(response -> {
-                if (response == null) {
-                    SketchwareUtil.toastError("Failed to connect to GitHub");
-                    return;
-                }
-
+            // Validate token in background
+            new Thread(() -> {
                 try {
-                    Map<String, Object> user = new Gson().fromJson(response, Map.class);
-                    if (user.containsKey("login")) {
-                        String username = (String) user.get("login");
-                        GitHubTokenManager.saveToken(activity, token);
-                        GitHubTokenManager.saveUsername(activity, username);
-                        SketchwareUtil.toast("Logged in as " + username);
-                        if (onSuccess != null) onSuccess.run();
-                    } else {
-                        SketchwareUtil.toastError("Invalid token");
-                    }
+                    GitHubApiClient client = new GitHubApiClient(token);
+                    Network.SyncResponse response = client.getUserSync();
+
+                    activity.runOnUiThread(() -> {
+                        if (response.isSuccessful() && response.body != null) {
+                            try {
+                                Map<String, Object> user = new Gson().fromJson(response.body, Map.class);
+                                String username = (String) user.get("login");
+                                if (username != null) {
+                                    GitHubTokenManager.saveToken(activity, token);
+                                    GitHubTokenManager.saveUsername(activity, username);
+                                    SketchwareUtil.toast("Logged in as " + username);
+                                    if (onSuccess != null) onSuccess.run();
+                                } else {
+                                    SketchwareUtil.toastError("Invalid response from GitHub");
+                                }
+                            } catch (Exception e) {
+                                SketchwareUtil.toastError("Failed to parse response: " + e.getMessage());
+                            }
+                        } else {
+                            SketchwareUtil.toastError("Invalid token (HTTP " + response.code + ")");
+                        }
+                    });
                 } catch (Exception e) {
-                    SketchwareUtil.toastError("Invalid token: " + e.getMessage());
+                    activity.runOnUiThread(() ->
+                            SketchwareUtil.toastError("Connection failed: " + e.getMessage()));
                 }
-            });
+            }).start();
         });
         dialog.setNegativeButton("Cancel", null);
         dialog.show();
@@ -84,7 +93,6 @@ public class GitHubUploadManager {
     private void showUploadDialog(String scId, String appName) {
         DialogGithubUploadBinding binding = DialogGithubUploadBinding.inflate(LayoutInflater.from(activity));
 
-        // Pre-fill with project info
         String repoName = appName.replaceAll("[^a-zA-Z0-9_\\-.]", "-").toLowerCase();
         binding.etRepoName.setText(repoName);
         binding.etDescription.setText("Sketchware project: " + appName);
@@ -150,9 +158,17 @@ public class GitHubUploadManager {
         @Override
         protected String doInBackground(Void... voids) {
             Activity act = activityRef.get();
-            if (act == null) return "Activity is null";
+            if (act == null) return "Activity not available";
 
             try {
+                String token = GitHubTokenManager.getToken(act);
+                String username = GitHubTokenManager.getUsername(act);
+                if (token == null || username == null) {
+                    return "Not logged in to GitHub";
+                }
+
+                GitHubApiClient client = new GitHubApiClient(token);
+
                 // Step 1: Create backup
                 publishProgress("Creating backup...");
                 BackupFactory factory = new BackupFactory(scId);
@@ -174,100 +190,51 @@ public class GitHubUploadManager {
                 }
                 String base64Content = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
 
-                String token = GitHubTokenManager.getToken(act);
-                String username = GitHubTokenManager.getUsername(act);
-                GitHubApiClient client = new GitHubApiClient(token);
-
-                // Step 3: Check if repo exists, create if not
+                // Step 3: Check if repo exists
                 publishProgress("Checking repository...");
-                final String[] repoCheckResult = {null};
-                final boolean[] repoCheckDone = {false};
+                Network.SyncResponse repoCheck = client.getRepoSync(username, repoName);
 
-                client.getRepo(username, repoName, response -> {
-                    repoCheckResult[0] = response;
-                    repoCheckDone[0] = true;
-                });
+                if (!repoCheck.isSuccessful()) {
+                    // Repo doesn't exist, create it
+                    publishProgress("Creating repository '" + repoName + "'...");
+                    Network.SyncResponse createResponse = client.createRepoSync(repoName, description, isPrivate);
 
-                // Wait for async response
-                int timeout = 30;
-                while (!repoCheckDone[0] && timeout > 0) {
-                    Thread.sleep(500);
-                    timeout--;
-                }
-                if (timeout <= 0) return "Timeout checking repository";
-
-                boolean repoExists = repoCheckResult[0] != null &&
-                        repoCheckResult[0].contains("\"full_name\"");
-
-                if (!repoExists) {
-                    publishProgress("Creating repository...");
-                    final boolean[] createDone = {false};
-                    final String[] createResult = {null};
-
-                    client.createRepo(repoName, description, isPrivate, response -> {
-                        createResult[0] = response;
-                        createDone[0] = true;
-                    });
-
-                    timeout = 30;
-                    while (!createDone[0] && timeout > 0) {
-                        Thread.sleep(500);
-                        timeout--;
+                    if (!createResponse.isSuccessful()) {
+                        String errorMsg = parseGitHubError(createResponse.body);
+                        return "Failed to create repository (HTTP " + createResponse.code + "): " + errorMsg;
                     }
-                    if (timeout <= 0) return "Timeout creating repository";
-                    if (createResult[0] == null) return "Failed to create repository";
 
-                    // Wait a bit for GitHub to process
-                    Thread.sleep(2000);
+                    // Wait for GitHub to initialize the repo
+                    Thread.sleep(3000);
                 }
 
                 // Step 4: Check if file already exists (to get SHA for update)
-                publishProgress("Checking existing file...");
+                publishProgress("Preparing upload...");
                 String fileName = repoName + ".swb";
-                final String[] fileInfoResult = {null};
-                final boolean[] fileInfoDone = {false};
-
-                client.getFileInfo(username, repoName, fileName, response -> {
-                    fileInfoResult[0] = response;
-                    fileInfoDone[0] = true;
-                });
-
-                timeout = 30;
-                while (!fileInfoDone[0] && timeout > 0) {
-                    Thread.sleep(500);
-                    timeout--;
-                }
-
                 String sha = null;
-                if (fileInfoResult[0] != null && fileInfoResult[0].contains("\"sha\"")) {
+
+                Network.SyncResponse fileCheck = client.getFileInfoSync(username, repoName, fileName);
+                if (fileCheck.isSuccessful() && fileCheck.body != null) {
                     try {
-                        Map<String, Object> fileInfo = new Gson().fromJson(fileInfoResult[0], Map.class);
+                        Map<String, Object> fileInfo = new Gson().fromJson(fileCheck.body, Map.class);
                         sha = (String) fileInfo.get("sha");
                     } catch (Exception ignored) {
                     }
                 }
 
                 // Step 5: Upload file
-                publishProgress("Uploading to GitHub...");
-                String commitMessage = sha != null ?
-                        "Update " + appName + " backup" :
-                        "Add " + appName + " backup";
+                publishProgress("Uploading " + fileName + " to GitHub...");
+                String commitMessage = sha != null
+                        ? "Update " + appName + " backup"
+                        : "Add " + appName + " backup";
 
-                final boolean[] uploadDone = {false};
-                final String[] uploadResult = {null};
+                Network.SyncResponse uploadResponse = client.uploadFileSync(
+                        username, repoName, fileName, base64Content, sha, commitMessage);
 
-                client.uploadFile(username, repoName, fileName, base64Content, sha, commitMessage, response -> {
-                    uploadResult[0] = response;
-                    uploadDone[0] = true;
-                });
-
-                timeout = 60;
-                while (!uploadDone[0] && timeout > 0) {
-                    Thread.sleep(500);
-                    timeout--;
+                if (!uploadResponse.isSuccessful()) {
+                    String errorMsg = parseGitHubError(uploadResponse.body);
+                    return "Upload failed (HTTP " + uploadResponse.code + "): " + errorMsg;
                 }
-                if (timeout <= 0) return "Timeout uploading file";
-                if (uploadResult[0] == null) return "Failed to upload file";
 
                 // Clean up temp backup
                 backupFile.delete();
@@ -285,6 +252,18 @@ public class GitHubUploadManager {
             } catch (Exception e) {
                 return "Error: " + e.getMessage();
             }
+        }
+
+        private String parseGitHubError(String responseBody) {
+            if (responseBody == null) return "No response";
+            try {
+                Map<String, Object> error = new Gson().fromJson(responseBody, Map.class);
+                if (error.containsKey("message")) {
+                    return (String) error.get("message");
+                }
+            } catch (Exception ignored) {
+            }
+            return responseBody.length() > 200 ? responseBody.substring(0, 200) : responseBody;
         }
 
         @Override

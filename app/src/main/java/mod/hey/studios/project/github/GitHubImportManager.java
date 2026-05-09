@@ -20,12 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import a.a.a.lC;
 import mod.hey.studios.project.backup.BackupFactory;
 import pro.sketchware.R;
 import pro.sketchware.activities.main.fragments.projects.ProjectsFragment;
 import pro.sketchware.databinding.DialogGithubImportBinding;
 import pro.sketchware.databinding.ProgressMsgBoxBinding;
+import pro.sketchware.utility.Network;
 import pro.sketchware.utility.SketchwareUtil;
 
 public class GitHubImportManager {
@@ -49,21 +49,17 @@ public class GitHubImportManager {
             String[] parsed = GitHubApiClient.parseGitHubUrl(url);
 
             if (parsed == null) {
-                SketchwareUtil.toastError("Invalid GitHub URL");
+                SketchwareUtil.toastError("Invalid GitHub URL. Use: https://github.com/user/repo");
                 return;
             }
 
-            importFromRepo(parsed[0], parsed[1]);
+            fetchAndShowFiles(parsed[0], parsed[1]);
         });
         dialog.setNegativeButton("Cancel", null);
         dialog.show();
     }
 
-    private void importFromRepo(String owner, String repo) {
-        String token = GitHubTokenManager.getToken(activity);
-        GitHubApiClient client = new GitHubApiClient(token);
-
-        // Show progress while listing files
+    private void fetchAndShowFiles(String owner, String repo) {
         ProgressMsgBoxBinding progressBinding = ProgressMsgBoxBinding.inflate(LayoutInflater.from(activity));
         progressBinding.tvProgress.setText("Fetching repository contents...");
         AlertDialog progressDialog = new MaterialAlertDialogBuilder(activity)
@@ -73,59 +69,72 @@ public class GitHubImportManager {
                 .create();
         progressDialog.show();
 
-        client.listRepoContents(owner, repo, null, response -> {
-            progressDialog.dismiss();
-
-            if (response == null) {
-                // Try with login if not logged in
-                if (!GitHubTokenManager.isLoggedIn(activity)) {
-                    new MaterialAlertDialogBuilder(activity)
-                            .setTitle("Authentication required")
-                            .setMessage("This repository may be private. Would you like to log in to GitHub?")
-                            .setPositiveButton("Login", (d, w) -> {
-                                new GitHubUploadManager(activity).showLoginDialog(() -> importFromRepo(owner, repo));
-                            })
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                } else {
-                    SketchwareUtil.toastError("Failed to access repository. Check the URL and your permissions.");
-                }
-                return;
-            }
-
+        new Thread(() -> {
             try {
-                Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
-                List<Map<String, Object>> contents = new Gson().fromJson(response, listType);
+                String token = GitHubTokenManager.getToken(activity);
+                GitHubApiClient client = new GitHubApiClient(token);
+                Network.SyncResponse response = client.listRepoContentsSync(owner, repo, null);
 
-                // Filter .swb files
-                List<Map<String, Object>> swbFiles = new ArrayList<>();
-                for (Map<String, Object> file : contents) {
-                    String name = (String) file.get("name");
-                    if (name != null && name.endsWith("." + BackupFactory.EXTENSION)) {
-                        swbFiles.add(file);
+                activity.runOnUiThread(() -> {
+                    progressDialog.dismiss();
+
+                    if (!response.isSuccessful()) {
+                        if (response.code == 404 && !GitHubTokenManager.isLoggedIn(activity)) {
+                            new MaterialAlertDialogBuilder(activity)
+                                    .setTitle("Authentication required")
+                                    .setMessage("This repository may be private or doesn't exist.\nWould you like to log in to GitHub?")
+                                    .setPositiveButton("Login", (d, w) -> {
+                                        new GitHubUploadManager(activity).showLoginDialog(
+                                                () -> fetchAndShowFiles(owner, repo));
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                        } else {
+                            SketchwareUtil.toastError("Failed to access repository (HTTP " + response.code + ")");
+                        }
+                        return;
                     }
-                }
 
-                if (swbFiles.isEmpty()) {
-                    SketchwareUtil.toastError("No Sketchware backup (.swb) files found in this repository");
-                    return;
-                }
+                    try {
+                        Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
+                        List<Map<String, Object>> contents = new Gson().fromJson(response.body, listType);
 
-                if (swbFiles.size() == 1) {
-                    String downloadUrl = (String) swbFiles.get(0).get("download_url");
-                    String fileName = (String) swbFiles.get(0).get("name");
-                    startDownloadAndRestore(downloadUrl, fileName, owner, repo);
-                } else {
-                    showFileSelectionDialog(swbFiles, owner, repo);
-                }
+                        List<Map<String, Object>> swbFiles = new ArrayList<>();
+                        for (Map<String, Object> file : contents) {
+                            String name = (String) file.get("name");
+                            if (name != null && name.endsWith("." + BackupFactory.EXTENSION)) {
+                                swbFiles.add(file);
+                            }
+                        }
+
+                        if (swbFiles.isEmpty()) {
+                            SketchwareUtil.toastError("No .swb backup files found in this repository");
+                            return;
+                        }
+
+                        if (swbFiles.size() == 1) {
+                            String downloadUrl = (String) swbFiles.get(0).get("download_url");
+                            String fileName = (String) swbFiles.get(0).get("name");
+                            startDownloadAndRestore(downloadUrl, fileName);
+                        } else {
+                            showFileSelectionDialog(swbFiles);
+                        }
+
+                    } catch (Exception e) {
+                        SketchwareUtil.toastError("Failed to parse response: " + e.getMessage());
+                    }
+                });
 
             } catch (Exception e) {
-                SketchwareUtil.toastError("Failed to parse repository contents: " + e.getMessage());
+                activity.runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    SketchwareUtil.toastError("Connection failed: " + e.getMessage());
+                });
             }
-        });
+        }).start();
     }
 
-    private void showFileSelectionDialog(List<Map<String, Object>> swbFiles, String owner, String repo) {
+    private void showFileSelectionDialog(List<Map<String, Object>> swbFiles) {
         String[] fileNames = new String[swbFiles.size()];
         for (int i = 0; i < swbFiles.size(); i++) {
             fileNames[i] = (String) swbFiles.get(i).get("name");
@@ -135,13 +144,13 @@ public class GitHubImportManager {
                 .setTitle("Select backup file")
                 .setItems(fileNames, (dialog, which) -> {
                     String downloadUrl = (String) swbFiles.get(which).get("download_url");
-                    startDownloadAndRestore(downloadUrl, fileNames[which], owner, repo);
+                    startDownloadAndRestore(downloadUrl, fileNames[which]);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void startDownloadAndRestore(String downloadUrl, String fileName, String owner, String repo) {
+    private void startDownloadAndRestore(String downloadUrl, String fileName) {
         String token = GitHubTokenManager.getToken(activity);
         new ImportAsyncTask(new WeakReference<>(activity), downloadUrl, fileName, token, projectsFragment).execute();
     }
@@ -188,7 +197,7 @@ public class GitHubImportManager {
                 byte[] fileBytes = client.downloadFileBytes(downloadUrl);
 
                 if (fileBytes == null || fileBytes.length == 0) {
-                    return "Failed to download file";
+                    return "Failed to download file (empty response)";
                 }
 
                 // Step 2: Save to temp file

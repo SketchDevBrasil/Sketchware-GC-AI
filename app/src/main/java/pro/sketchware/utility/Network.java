@@ -97,6 +97,34 @@ public class Network {
     }
 
     /**
+     * Synchronous HTTP request. Must be called from a background thread.
+     * Returns a SyncResponse with status code and body.
+     */
+    public SyncResponse requestSync(String method, String url, Map<String, String> headers, String body) throws IOException {
+        Request.Builder requestBuilder = new Request.Builder().url(url);
+
+        if (headers != null) {
+            headers.forEach(requestBuilder::addHeader);
+        }
+
+        RequestBody requestBody = null;
+        if (!method.equalsIgnoreCase("GET") && !method.equalsIgnoreCase("HEAD")) {
+            if (body != null) {
+                requestBody = RequestBody.create(body, MediaType.parse("application/json; charset=utf-8"));
+            } else {
+                requestBody = RequestBody.create("", MediaType.parse("application/json"));
+            }
+        }
+
+        requestBuilder.method(method, requestBody);
+
+        try (Response response = client.newCall(requestBuilder.build()).execute()) {
+            String responseBody = response.body() != null ? response.body().string() : null;
+            return new SyncResponse(response.code(), responseBody);
+        }
+    }
+
+    /**
      * Synchronous binary download. Must be called from a background thread.
      */
     public byte[] downloadBytes(String url, Map<String, String> headers) throws IOException {
@@ -115,5 +143,19 @@ public class Network {
     @FunctionalInterface
     public interface ResponseHandler {
         void handleResponse(String response);
+    }
+
+    public static class SyncResponse {
+        public final int code;
+        public final String body;
+
+        public SyncResponse(int code, String body) {
+            this.code = code;
+            this.body = body;
+        }
+
+        public boolean isSuccessful() {
+            return code >= 200 && code < 300;
+        }
     }
 }
