@@ -73,7 +73,34 @@
             app:drawableEndCompat="@drawable/ic_mtrl_arrow_right" />
 
     </LinearLayout>
-    9
+
+    <LinearLayout
+        android:id="@+id/github_upload"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            app:srcCompat="@drawable/ic_mtrl_github" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:gravity="center_vertical"
+            android:text="Upload to GitHub"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            app:drawableEndCompat="@drawable/ic_mtrl_arrow_right" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/export_sign"

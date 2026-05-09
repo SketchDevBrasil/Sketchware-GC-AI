@@ -110,19 +110,8 @@ public class CompileLogActivity extends BaseAppCompatActivity {
 
         binding.fabAgente.setOnClickListener(v -> {
             String logText = binding.tvCompileLog.getText().toString();
-            String contextInfo = "O usuário está visualizando os seguintes erros de compilação:\\n" +
-                    "```\\n" + logText + "\\n```\\n\\n" +
-                    "Ajude a identificar o porquê desses erros e forneça instruções claras de como corrigi-los no projeto.";
-            
-            mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
-                    sc_id,
-                    "Compile Log",
-                    "main.xml",
-                    null, 
-                    (instruction) -> {
-                        pro.sketchware.utility.SketchwareUtil.toast("Comando não suportado no Compile Log.");
-                    }
-            );
+            mod.sdb.agente.SdbAgenteChatSheet sheet =
+                    mod.sdb.agente.SdbAgenteChatSheet.newInstanceForCompileError(sc_id, logText);
             sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
         });
 

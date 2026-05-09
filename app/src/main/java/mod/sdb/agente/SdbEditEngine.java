@@ -77,6 +77,21 @@ public class SdbEditEngine {
         public String code;
         public String java_name; // shorthand: AI can use data.java_name instead of data.attributes.java_name
         public String event_name; // shorthand
+
+        // For create_java_file / edit_java_file / delete_java_file
+        public String file_name; // class name, e.g. "MyHelper" or "com.example.MyHelper"
+        public String content;   // full Java source code
+
+        // For add_variable / add_list
+        public String var_type;  // "Boolean", "Number", "String", "Map"
+        public String list_type; // "Number", "String", "Map"
+
+        // For set_custom_view (connect ListView to item layout)
+        public String custom_view; // layout name, e.g. "list_item" (no .xml)
+
+        // For add_component
+        public String component_type; // "FirebaseDB", "FirebaseAuth", "RequestNetwork", etc.
+        public String param1;         // reference path (Firebase), filename (SharedPrefs), unused otherwise
     }
 
     public static boolean applyEdits(String scId, String jsonResponse, String currentXmlName) {
@@ -905,6 +920,327 @@ public class SdbEditEngine {
             }
             return false;
         }
+
+        // ── Add / register a view event (onClick, onLongClick, etc.) ────────
+        if ("add_view_event".equals(op.op)) {
+            OperationData data = op.data;
+            // Resolve view ID
+            String viewId = data.view_id != null ? data.view_id
+                    : (data.widget_id != null ? data.widget_id : data.id);
+            if (viewId == null || viewId.trim().isEmpty()) return false;
+
+            String eventName = (data.event_name != null && !data.event_name.trim().isEmpty())
+                    ? data.event_name : "onClick";
+            String code = data.code != null ? data.code : "";
+
+            // Resolve XML name (layout)
+            String xmlName = op.xmlName != null ? op.xmlName
+                    : (data.target_xml_name != null ? data.target_xml_name : currentXmlName);
+            if (xmlName == null) return false;
+            String normXml = xmlName.replace(".xml", "");
+
+            // Resolve Java name (activity)
+            String javaName = data.java_name != null ? data.java_name : defaultContextName;
+            if (javaName == null) return false;
+            String normJava = javaName.endsWith(".java") ? javaName : javaName + ".java";
+
+            // Look up the view to get its type
+            com.besome.sketch.beans.ViewBean view = jC.a(scId).c(normXml, viewId);
+            int viewType = view != null ? view.type : 3; // default to Button type
+
+            // Register the EventBean with correct VIEW type so it appears in the UI
+            jC.a(scId).a(normJava,
+                    com.besome.sketch.beans.EventBean.EVENT_TYPE_VIEW,
+                    viewType, viewId, eventName);
+
+            // Inject code (event now exists in g(), so addEventToActivityAndInjectCode
+            // will find it and use the correct key)
+            if (!code.trim().isEmpty()) {
+                addEventToActivityAndInjectCode(scId, normJava, viewId + "_" + eventName, code);
+            } else {
+                // Register empty event slot so it shows up in Logic Editor
+                jC.a(scId).a(normJava, viewId + "_" + eventName, new java.util.ArrayList<>());
+            }
+            return true;
+        }
+
+        // ── AndroidManifest permission operations ────────────────────────────
+        if ("add_permission".equals(op.op) || "remove_permission".equals(op.op)) {
+            OperationData data = op.data;
+            // permission name can be in data.name or data.code (AI flexibility)
+            String permission = data.name != null ? data.name.trim()
+                    : (data.code != null ? data.code.trim() : null);
+            if (permission == null || permission.isEmpty()) return false;
+            // Normalize: accept short form "INTERNET" → "android.permission.INTERNET"
+            if (!permission.contains(".")) {
+                permission = "android.permission." + permission.toUpperCase();
+            }
+
+            pro.sketchware.utility.FilePathUtil fpu = new pro.sketchware.utility.FilePathUtil();
+            String path = fpu.getPathPermission(scId);
+
+            java.util.ArrayList<String> perms = new java.util.ArrayList<>();
+            String existing = pro.sketchware.utility.FileUtil.readFile(path);
+            if (existing != null && !existing.isEmpty()) {
+                try {
+                    perms = new com.google.gson.Gson().fromJson(existing, mod.hey.studios.util.Helper.TYPE_STRING);
+                } catch (Exception ignored) {}
+            }
+            if (perms == null) perms = new java.util.ArrayList<>();
+
+            if ("add_permission".equals(op.op)) {
+                if (!perms.contains(permission)) {
+                    perms.add(permission);
+                    pro.sketchware.utility.FileUtil.writeFile(path, new com.google.gson.Gson().toJson(perms));
+                }
+            } else {
+                perms.remove(permission);
+                pro.sketchware.utility.FileUtil.writeFile(path, new com.google.gson.Gson().toJson(perms));
+            }
+            return true;
+        }
+
+        // ── Variable operations ──────────────────────────────────────────────
+        if ("add_variable".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null) return false;
+            String javaName = data.java_name != null ? data.java_name : defaultContextName;
+            if (javaName == null || javaName.trim().isEmpty()) return false;
+            javaName = javaName.endsWith(".java") ? javaName : javaName + ".java";
+            String varName = data.name != null ? data.name.trim() : null;
+            if (varName == null || varName.isEmpty()) return false;
+            String typeStr = (data.var_type != null ? data.var_type : (data.code != null ? data.code : "String")).trim().toLowerCase();
+            int typeConst;
+            switch (typeStr) {
+                case "boolean": case "bool": typeConst = 0; break;
+                case "number": case "int": case "integer": case "double": case "float": typeConst = 1; break;
+                case "map": case "hashmap": typeConst = 3; break;
+                default: typeConst = 2; break; // String
+            }
+            try {
+                jC.a(scId).f(javaName, typeConst, varName);
+                jC.a(scId).k();
+            } catch (Exception e) {
+                android.util.Log.e("SdbEditEngine", "add_variable failed", e);
+                return false;
+            }
+            return true;
+        }
+
+        // ── List operations ──────────────────────────────────────────────────
+        if ("add_list".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null) return false;
+            String javaName = data.java_name != null ? data.java_name : defaultContextName;
+            if (javaName == null || javaName.trim().isEmpty()) return false;
+            javaName = javaName.endsWith(".java") ? javaName : javaName + ".java";
+            String listName = data.name != null ? data.name.trim() : null;
+            if (listName == null || listName.isEmpty()) return false;
+            String typeStr = (data.list_type != null ? data.list_type : (data.var_type != null ? data.var_type : "String")).trim().toLowerCase();
+            int typeConst;
+            switch (typeStr) {
+                case "number": case "int": case "integer": typeConst = 1; break;
+                case "map": case "hashmap": typeConst = 3; break;
+                default: typeConst = 2; break; // String
+            }
+            try {
+                jC.a(scId).e(javaName, typeConst, listName);
+                jC.a(scId).k();
+            } catch (Exception e) {
+                android.util.Log.e("SdbEditEngine", "add_list failed", e);
+                return false;
+            }
+            return true;
+        }
+
+        // ── Set custom view on a ListView (connects layout to adapter) ───────
+        if ("set_custom_view".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null) return false;
+            // Resolve XML layout name (the screen that contains the ListView)
+            String xmlName = op.xmlName;
+            if (xmlName == null && data.target_xml_name != null) xmlName = data.target_xml_name;
+            if (xmlName == null) xmlName = currentXmlName;
+            if (xmlName == null) return false;
+            String normXml = xmlName.endsWith(".xml") ? xmlName : xmlName + ".xml";
+
+            // View ID of the ListView widget
+            String viewId = data.view_id != null ? data.view_id : (data.widget_id != null ? data.widget_id : data.id);
+            if (viewId == null || viewId.trim().isEmpty()) return false;
+
+            // Custom view layout name (the item layout to use)
+            String customViewName = data.custom_view != null ? data.custom_view
+                    : (data.name != null ? data.name : null);
+            if (customViewName == null || customViewName.trim().isEmpty()) return false;
+            customViewName = customViewName.replace(".xml", "").trim();
+
+            try {
+                // Find and update the ViewBean
+                com.besome.sketch.beans.ViewBean view = jC.a(scId).c(normXml, viewId);
+                if (view == null) return false;
+                view.customView = customViewName;
+
+                // Ensure the custom view layout file exists (create if needed)
+                String cvXml = customViewName + ".xml";
+                if (jC.b(scId).b(cvXml) == null) {
+                    com.besome.sketch.beans.ProjectFileBean newFile = new com.besome.sketch.beans.ProjectFileBean(
+                            com.besome.sketch.beans.ProjectFileBean.PROJECT_FILE_TYPE_CUSTOM_VIEW,
+                            customViewName);
+                    jC.b(scId).a(newFile);
+                    jC.b(scId).j(); // persist file registry (same as edit_layout_xml does)
+                }
+                // Persist the ViewBean change (customView field)
+                jC.a(scId).k();
+            } catch (Exception e) {
+                android.util.Log.e("SdbEditEngine", "set_custom_view failed", e);
+                return false;
+            }
+            return true;
+        }
+
+        // ── Material3 enable operation ───────────────────────────────────────
+        if ("enable_material3".equals(op.op)) {
+            try {
+                com.besome.sketch.beans.ProjectLibraryBean compat = jC.c(scId).c();
+                if (compat.configurations == null) compat.configurations = new java.util.HashMap<>();
+                compat.useYn = "Y"; // ensure AppCompat is enabled
+                compat.configurations.put("material3", true);
+                if (!compat.configurations.containsKey("theme")) {
+                    compat.configurations.put("theme", "DayNight");
+                }
+                jC.c(scId).b(compat);
+                jC.c(scId).k();
+            } catch (Exception e) {
+                android.util.Log.e("SdbEditEngine", "enable_material3 failed", e);
+                return false;
+            }
+            return true;
+        }
+
+        // ── Java file operations ─────────────────────────────────────────────
+        if ("create_java_file".equals(op.op) || "edit_java_file".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null || data.file_name == null || data.file_name.trim().isEmpty()) return false;
+            // Support both "MyHelper" and "com.example.MyHelper" — use only the simple class name for the file
+            String simpleName = data.file_name.contains(".")
+                    ? data.file_name.substring(data.file_name.lastIndexOf('.') + 1)
+                    : data.file_name;
+            if (!simpleName.endsWith(".java")) simpleName += ".java";
+            String javaDir = new pro.sketchware.utility.FilePathUtil().getPathJava(scId);
+            new java.io.File(javaDir).mkdirs();
+            String code = data.content != null ? data.content : "";
+            pro.sketchware.utility.FileUtil.writeFile(javaDir + java.io.File.separator + simpleName, code);
+            return true;
+        }
+
+        if ("delete_java_file".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null || data.file_name == null || data.file_name.trim().isEmpty()) return false;
+            String simpleName = data.file_name.contains(".")
+                    ? data.file_name.substring(data.file_name.lastIndexOf('.') + 1)
+                    : data.file_name;
+            if (!simpleName.endsWith(".java")) simpleName += ".java";
+            String javaDir = new pro.sketchware.utility.FilePathUtil().getPathJava(scId);
+            new java.io.File(javaDir + java.io.File.separator + simpleName).delete();
+            return true;
+        }
+
+        // ── Add component (Firebase, RequestNetwork, SharedPrefs, Timer, etc.) ─
+        if ("add_component".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null) return false;
+
+            String javaName = data.java_name != null ? data.java_name : defaultContextName;
+            if (javaName == null || javaName.trim().isEmpty()) return false;
+            javaName = javaName.endsWith(".java") ? javaName : javaName + ".java";
+
+            String componentId = data.name != null ? data.name.trim() : null;
+            String typeStr = data.component_type != null ? data.component_type.trim().toLowerCase() : null;
+            if (componentId == null || componentId.isEmpty()) return false;
+            if (typeStr == null || typeStr.isEmpty()) return false;
+
+            int typeConst;
+            switch (typeStr) {
+                case "sharedpreferences": case "sharedpref": case "file":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_SHAREDPREF; break;
+                case "calendar":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_CALENDAR; break;
+                case "timer": case "timertask":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_TIMERTASK; break;
+                case "vibrator":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_VIBRATOR; break;
+                case "soundpool":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_SOUNDPOOL; break;
+                case "mediaplayer":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_MEDIAPLAYER; break;
+                case "texttospeech": case "tts":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_TEXT_TO_SPEECH; break;
+                case "speechtotext": case "stt": case "speech":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_SPEECH_TO_TEXT; break;
+                case "camera":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_CAMERA; break;
+                case "firebasedb": case "firebase": case "database": case "rtdb":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_FIREBASE; break;
+                case "firebaseauth": case "auth":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH; break;
+                case "firebasestorage": case "storage":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE; break;
+                case "requestnetwork": case "network": case "http":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_REQUEST_NETWORK; break;
+                case "bluetoothconnect": case "bluetooth":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_BLUETOOTH_CONNECT; break;
+                case "locationmanager": case "location":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_LOCATION_MANAGER; break;
+                case "cloudmessaging": case "fcm": case "cloudmessage": case "firebasecloudmessage":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE; break;
+                case "interstitialad": case "interstitial":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD; break;
+                case "rewardedad": case "rewarded": case "rewardedvideoad":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_REWARDED_VIDEO_AD; break;
+                case "dialog":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_DIALOG; break;
+                case "progressdialog":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_PROGRESS_DIALOG; break;
+                case "notification":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_NOTIFICATION; break;
+                case "gyroscope":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_GYROSCOPE; break;
+                case "filepicker":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_FILE_PICKER; break;
+                case "objectanimator": case "animator":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_OBJECTANIMATOR; break;
+                default:
+                    pro.sketchware.utility.SketchwareUtil.toastError("add_component: tipo desconhecido: " + data.component_type);
+                    return false;
+            }
+
+            try {
+                // Register the component in the project data
+                jC.a(scId).d(javaName, typeConst, componentId);
+
+                // If param1 is provided (Firebase ref path, SharedPrefs filename), set it
+                if (data.param1 != null && !data.param1.trim().isEmpty()) {
+                    java.util.ArrayList<com.besome.sketch.beans.ComponentBean> comps = jC.a(scId).e(javaName);
+                    if (comps != null) {
+                        for (com.besome.sketch.beans.ComponentBean comp : comps) {
+                            if (componentId.equals(comp.componentId) && comp.type == typeConst) {
+                                comp.param1 = data.param1.trim();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                jC.a(scId).k();
+                pro.sketchware.utility.SketchwareUtil.toast("Componente '" + componentId + "' adicionado.");
+                return true;
+            } catch (Exception e) {
+                android.util.Log.e("SdbEditEngine", "add_component failed", e);
+                pro.sketchware.utility.SketchwareUtil.toastError("Falha ao adicionar componente: " + e.getMessage());
+                return false;
+            }
+        }
+
         return false;
     }
 

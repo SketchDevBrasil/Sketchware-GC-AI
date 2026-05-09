@@ -10,4 +10,10 @@
         app:showAsAction="always|collapseActionView"
         tools:ignore="AlwaysShowAction" />
 
+    <item
+        android:id="@+id/importFromGitHub"
+        android:icon="@drawable/ic_mtrl_github"
+        android:title="Import from GitHub"
+        app:showAsAction="never" />
+
 </menu>

@@ -26,6 +26,7 @@ public class ExtraBlockFile {
 
         buildInBlocks.clear();
         BlocksHandler.builtInBlocks(buildInBlocks);
+        mod.sdb.agente.BlockSpecTranslations.applyIfPt(buildInBlocks);
         extraBlocks.addAll(buildInBlocks);
 
         return extraBlocks;

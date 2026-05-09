@@ -77,6 +77,8 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
     private boolean isCodeEditorMode = false;
     private String originalCode = null;
     private OnCodeApplyListener codeApplyListener = null;
+    private boolean isCompileErrorMode = false;
+    private String compileErrorText = null;
     
     private String contextName = null;
     private String contextXmlName = null;
@@ -154,6 +156,17 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
     }
 
 
+    public static SdbAgenteChatSheet newInstanceForCompileError(String sc_id, String errorText) {
+        SdbAgenteChatSheet fragment = new SdbAgenteChatSheet();
+        Bundle args = new Bundle();
+        args.putString("sc_id", sc_id);
+        args.putString("compile_error_text", errorText);
+        fragment.setArguments(args);
+        fragment.isCompileErrorMode = true;
+        fragment.compileErrorText = errorText;
+        return fragment;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -165,6 +178,10 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             if (getArguments().containsKey("original_code")) {
                 originalCode = getArguments().getString("original_code");
                 isCodeEditorMode = true;
+            }
+            if (getArguments().containsKey("compile_error_text")) {
+                compileErrorText = getArguments().getString("compile_error_text");
+                isCompileErrorMode = true;
             }
         }
         agente = new SdbAgenteSk(getContext(), sc_id);
@@ -239,6 +256,18 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         }
 
         refreshUiLanguage(view);
+
+        // Compile error mode: pre-fill input and auto-send fix request
+        if (isCompileErrorMode && compileErrorText != null && !compileErrorText.trim().isEmpty()) {
+            // Hide chips/intent bar — not relevant for error fixing
+            View chipGroup = view.findViewById(R.id.chip_group_intent);
+            if (chipGroup != null) chipGroup.setVisibility(View.GONE);
+            // Pre-fill input with fix request
+            String prompt = s("Corrija esses erros de compilação", "Fix these compile errors");
+            inputText.setText(prompt);
+            // Auto-send after layout is ready
+            view.post(() -> sendMessage());
+        }
 
         imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
             if (uri != null) {
@@ -420,11 +449,16 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             "- Long press em ⚙️ abre as configurações da API\n" +
             "- O histórico de chats é salvo automaticamente\n\n" +
             "## Operações suportadas\n" +
-            "**Código Java:** `inject_code` · `add_import`\n" +
+            "**Código Java:** `inject_code` · `add_import` · `add_view_event`\n" +
+            "**Classes Java:** `create_java_file` · `edit_java_file` · `delete_java_file`\n" +
+            "**Variáveis/Listas:** `add_variable` · `add_list`\n" +
             "**MoreBlocks:** `add_moreblock` · `update_moreblock` · `delete_moreblock`\n" +
             "**Drawables:** `add_drawable` · `delete_drawable`\n" +
             "**Blocos de Paleta:** `add_custom_block` · `update_custom_block` · `delete_custom_block` · `delete_palette`\n" +
-            "**Design/Widgets:** `edit_layout_xml` · `add_widget` · `update_widget` · `remove_widget`"
+            "**Design/Widgets:** `edit_layout_xml` · `add_widget` · `update_widget` · `remove_widget` · `set_custom_view`\n" +
+            "**Permissões:** `add_permission` · `remove_permission`\n" +
+            "**Material 3:** `enable_material3`\n" +
+            "**Componentes:** `add_component`"
             :
             "## What is SDBCodFlow?\n" +
             "An AI agent integrated into Sketchware Pro. It reads your project and applies changes directly.\n\n" +
@@ -452,11 +486,16 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             "- Long press ⚙️ to open API settings\n" +
             "- Chat history is saved automatically\n\n" +
             "## Supported operations\n" +
-            "**Java Code:** `inject_code` · `add_import`\n" +
+            "**Java Code:** `inject_code` · `add_import` · `add_view_event`\n" +
+            "**Java Classes:** `create_java_file` · `edit_java_file` · `delete_java_file`\n" +
+            "**Variables/Lists:** `add_variable` · `add_list`\n" +
             "**MoreBlocks:** `add_moreblock` · `update_moreblock` · `delete_moreblock`\n" +
             "**Drawables:** `add_drawable` · `delete_drawable`\n" +
             "**Palette Blocks:** `add_custom_block` · `update_custom_block` · `delete_custom_block` · `delete_palette`\n" +
-            "**Design/Widgets:** `edit_layout_xml` · `add_widget` · `update_widget` · `remove_widget`";
+            "**Design/Widgets:** `edit_layout_xml` · `add_widget` · `update_widget` · `remove_widget` · `set_custom_view`\n" +
+            "**Permissions:** `add_permission` · `remove_permission`\n" +
+            "**Material 3:** `enable_material3`\n" +
+            "**Components:** `add_component`";
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(getContext());
         TextView tv = new TextView(getContext());
@@ -777,16 +816,30 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
         String contextPrefix = (contextName != null) ? "CONTEXTO ATUAL: " + contextName + "\n" : "";
         String xmlPrefix = (contextXmlName != null) ? "TELA ATUAL (XML): " + contextXmlName + "\n" : "";
         String addon = (systemInstructionAddon != null) ? systemInstructionAddon + "\n" : "";
-        
+
+        // Compile error mode: inject error text into system instruction
+        if (isCompileErrorMode && compileErrorText != null && !compileErrorText.trim().isEmpty()) {
+            addon = "### ERROS DE COMPILAÇÃO DO PROJETO:\n```\n" + compileErrorText + "\n```\n"
+                + "Analise os erros acima e corrija-os usando as operações disponíveis (`inject_code`, `create_java_file`, `edit_java_file`, `add_import`, etc.).\n"
+                + "Foque APENAS em corrigir os erros. Não faça mudanças desnecessárias.\n\n";
+        }
+
         String designFocus = "";
-        if (isCodeEditorMode || (contextName != null && contextName.toLowerCase().contains("xml"))) {
-            designFocus = "### REGRAS DE CODIFICAÇÃO (ESTRITAS):\n"
-                + "- **SALVAMENTO MANUAL**: Se o prompt indicar que o usuário editou o código manualmente, sua ÚNICA prioridade é sincronizar esse código com o projeto usando `inject_code` ou `edit_layout_xml`.\n"
-                + "- **PENSAMENTO LÓGICO ANTES DE AGIR**: Em Android, arquivos de Layout (.xml em /layout/) e arquivos de Drawable (.xml em /drawable/) são arquivos de TIPOS DIFERENTES. Você nunca deve misturá-los.\n"
-                + "- **PRECISÃO DO COMANDO `edit_layout_xml`**: Este comando edita a TELA. Ele aceita apenas Widgets (LinearLayout, Button, etc.).\n"
-                + "- **PRECISÃO DO COMANDO `add_drawable`**: Este comando cria um RECURSO. Ele aceita apenas definições de desenho (shape, selector, layer-list).\n"
-                + "- **JAVA/LOGICA**: Ao lidar com Java no Code Editor, use `inject_code` ou `add_direct_code`. Se o arquivo Java estiver vazio, crie a lógica básica pedida.\n"
-                + "- **PROIBIÇÃO TOTAL**: É um erro técnico fatal inserir código de desenho (tags como `<shape>`, `<selector>`, etc.) dentro do `xml_content` de um comando `edit_layout_xml`.\n"
+        if (isCompileErrorMode) {
+            designFocus = ""; // Sem restrição de modo no compile error — pode precisar de qualquer operação
+        } else if (isCodeEditorMode) {
+            // Aberto a partir do editor de código Java
+            designFocus = "### MODO EDITOR DE CÓDIGO JAVA:\n"
+                + "- **FOCO**: O usuário está editando um arquivo Java. Sua prioridade é `inject_code` ou `add_direct_code` para sincronizar lógica.\n"
+                + "- **SALVAMENTO MANUAL**: Se o prompt indicar que o usuário editou o código manualmente, use `inject_code` para sincronizar.\n"
+                + "- `add_drawable` / `edit_layout_xml` são operações de LAYOUT — use somente se explicitamente pedido junto com a lógica.\n"
+                + "- **AUTO-SUFICIÊNCIA**: Gere o JSON completo. Não peça ao usuário para copiar e colar nada.\n\n";
+        } else if (contextXmlName != null && contextName == null) {
+            // Aberto a partir do editor de layout XML (sem contexto Java)
+            designFocus = "### MODO EDITOR DE LAYOUT XML:\n"
+                + "- **FOCO**: O usuário está editando um layout de tela. Use `edit_layout_xml`, `add_widget`, `update_widget`, `add_drawable`.\n"
+                + "- **PROIBIDO NESTE MODO**: `inject_code`, `add_direct_code` — o usuário está no editor de DESIGN, não de código.\n"
+                + "- Layout (.xml em /layout/) aceita SOMENTE Widgets. Drawable (.xml em /drawable/) aceita SOMENTE shapes/selectors. NUNCA misture.\n"
                 + "- **AUTO-SUFICIÊNCIA**: Gere o JSON completo. Não peça ao usuário para copiar e colar nada.\n\n";
         }
 
@@ -821,8 +874,10 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
 
         String sourceOfTruth;
         if (contextName == null) {
-            // Modo projeto completo — listar telas reais para a IA usar
+            // Modo projeto completo — listar telas e arquivos Java existentes para a IA usar
             StringBuilder screenList = new StringBuilder();
+            StringBuilder javaFileList = new StringBuilder();
+            String projectPackage = "";
             try {
                 java.util.ArrayList<com.besome.sketch.beans.ProjectFileBean> files = a.a.a.jC.b(sc_id).b();
                 if (files != null) {
@@ -832,14 +887,39 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                     }
                 }
             } catch (Exception ignored) {}
+            try {
+                pro.sketchware.utility.FileResConfig frc = new pro.sketchware.utility.FileResConfig(sc_id);
+                java.util.ArrayList<String> javaFiles = frc.getJavaFile();
+                for (String path : javaFiles) {
+                    String name = path.contains("/") ? path.substring(path.lastIndexOf('/') + 1) : path;
+                    javaFileList.append("  - ").append(name).append("\n");
+                }
+            } catch (Exception ignored) {}
+            try {
+                for (java.util.HashMap<String, Object> proj : a.a.a.lC.a()) {
+                    if (sc_id.equals(a.a.a.yB.c(proj, "sc_id"))) {
+                        projectPackage = a.a.a.yB.c(proj, "my_sc_pkg_name");
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {}
+            // Check Material3 status
+            boolean isMaterial3On = false;
+            try {
+                isMaterial3On = new com.besome.sketch.editor.manage.library.material3.Material3LibraryManager(sc_id).isMaterial3Enabled();
+            } catch (Exception ignored) {}
             sourceOfTruth = "### MODO PROJETO COMPLETO (multi-tela):\n"
                 + "- Você tem acesso a TODAS as telas do projeto.\n"
+                + (projectPackage.isEmpty() ? "" : "- **PACKAGE DO PROJETO**: `" + projectPackage + "` (use SEMPRE no topo das classes Java)\n")
+                + "- **MATERIAL 3**: " + (isMaterial3On ? "✅ HABILITADO — use atributos Material 3 (MaterialButton, TextInputLayout, etc.)" : "❌ Desabilitado — use `enable_material3` para ativar antes de usar componentes M3") + "\n"
                 + "- **TELAS DISPONÍVEIS** (use estes nomes EXATOS nas operações):\n"
                 + (screenList.length() > 0 ? screenList.toString() : "  (ver contexto abaixo)\n")
+                + (javaFileList.length() > 0 ? "- **CLASSES JAVA EXISTENTES** (use `edit_java_file` para editar, `create_java_file` para criar novas):\n" + javaFileList.toString() : "")
                 + "- **OBRIGATÓRIO**: Sempre inclua `\"java_name\"` e `\"xmlName\"` explicitamente em CADA operação.\n"
                 + "- **PROIBIDO**: `add_direct_code` (requer evento aberto). Use SEMPRE `inject_code` com `java_name` + `event_name` para lógica Java.\n"
                 + "- **LAYOUT**: Use `edit_layout_xml` ou `add_widget` com `\"xmlName\": \"nomeDaTela\"` explícito (sem .xml).\n"
-                + "- **MOREBLOCK**: Use `add_moreblock` com `\"data\": { \"java_name\": \"NomeDaTela\", \"name\": ..., \"spec\": ..., \"code\": ... }`.\n\n";
+                + "- **MOREBLOCK**: Use `add_moreblock` SOMENTE SE o usuário pedir explicitamente uma função reutilizável.\n"
+                + "- **COMPONENTES**: Use `add_component` antes de usar métodos de Firebase, RequestNetwork, SharedPreferences, Timer, Bluetooth, Location, Camera, etc. em `inject_code`.\n\n";
         } else {
             sourceOfTruth = "### FONTE DA VERDADE (INQUESTIONÁVEL):\n"
                 + "- **CLASSE JAVA/ATIVIDADE**: `" + contextName + "`\n"
@@ -847,11 +927,21 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
                 + "Use EXATAMENTE estes nomes em qualquer operação JSON. Não tente adivinhar ou sugerir outros nomes.\n\n";
         }
 
-        String instruction = sourceOfTruth + contextPrefix + addon + intentInstruction + designFocus + imageInstruction + "Você é o Agente SDBCodFlow do Sketchware Pro.\n"
+        String instruction = sourceOfTruth + contextPrefix + addon + intentInstruction + designFocus + imageInstruction
+            + "### ⚠️ IDENTIDADE — LEIA ANTES DE QUALQUER COISA:\n"
+            + "Você é o Agente SDBCodFlow do **Sketchware Pro** — um app Android para criar apps visualmente.\n"
+            + "**VOCÊ NÃO ESTÁ NO ANDROID STUDIO.** As operações funcionam assim:\n"
+            + "- `edit_layout_xml` / `add_widget` → edita SOMENTE layouts (XML de tela). O campo `xml_content` aceita SOMENTE tags de View (LinearLayout, Button, etc.). **Jamais coloque código Java dentro de xml_content.**\n"
+            + "- `inject_code` / `add_direct_code` → injeta código **Java** em eventos. Use SEMPRE para qualquer lógica Java (onClick, onCreate, etc.).\n"
+            + "- `create_java_file` / `edit_java_file` → cria/edita classes Java auxiliares (Helper, Model, etc.).\n"
+            + "- `add_moreblock` → cria funções reutilizáveis. Use **SOMENTE** se o usuário pedir explicitamente.\n"
+            + "- `add_component` → registra um componente Sketchware (Firebase, RequestNetwork, SharedPrefs, Timer, etc.). Use ANTES de chamar métodos do componente em `inject_code`.\n\n"
+            + "**REGRA DE OURO**: Pediu código/lógica Java? → `inject_code`. Criar classe Java? → `create_java_file`. Editar layout? → `edit_layout_xml`. Firebase/Rede/etc? → `add_component` + `inject_code`. **Lista com item personalizado? → OBRIGATÓRIO os 4 passos: `edit_layout_xml`(com XML real) + `set_custom_view` + `add_view_event(onBindCustomView)` + `inject_code`(popular lista).** NUNCA omita passos.\n\n"
             + "Modifique o projeto retornando um JSON estrito EM ADIÇÃO à sua resposta em texto amigável.\n\n"
             + "### GUIA DE OPERAÇÕES JSON:\n"
             + "1. **Injetar Lógica Local** `{ \"op\": \"add_direct_code\", \"data\": { \"code\": \"// java;\" } }` (Injeta no evento aberto)\n"
             + "2. **Injeção Global** `{ \"op\": \"inject_code\", \"data\": { \"attributes\": { \"java_name\": \"Home\", \"event_name\": \"onCreate\", \"code\": \"// java\" } } }` (Injeta em qualquer evento/tela)\n"
+            + "   **CRIAR EVENTO DE VIEW (onClick, onLongClick, etc.)**: `{ \"op\": \"add_view_event\", \"xmlName\": \"main\", \"data\": { \"java_name\": \"MainActivity.java\", \"view_id\": \"button1\", \"event_name\": \"onClick\", \"code\": \"// handler\" } }` — Registra o evento corretamente E injeta o código. Use SEMPRE isto (não `inject_code`) quando quiser criar um handler para um widget do design que ainda não tem evento. Suporta: `onClick`, `onLongClick`, `onTextChanged`, `onCheckedChanged`, etc.\n"
             + "3. **Adicionar Imports Java** `{ \"op\": \"add_import\", \"data\": { \"java_name\": \"Home\", \"code\": \"import java.util.List;\\nimport java.util.ArrayList;\" } }` (Adiciona imports sem sobrescrever os existentes — use SEMPRE que injetar código que precise de imports)\n"
             + "4. **CRIAR MOREBLOCK**: `{ \"op\": \"add_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.b\", \"code\": \"// java\" } }` (cria novo; spec: nome + params tipo %s.s=string %d.d=número %b.b=bool)\n"
             + "   **EDITAR MOREBLOCK existente**: `{ \"op\": \"update_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.s\", \"code\": \"// novo código java\" } }` (atualiza spec E corpo do moreblock existente; se não existir, cria)\n"
@@ -870,6 +960,68 @@ public class SdbAgenteChatSheet extends BottomSheetDialogFragment {
             + "   - **Adicionar widget**: `{ \"op\": \"add_widget\", \"xmlName\": \"main\", \"data\": { \"widget_id\": \"b1\", \"widget_type\": 3, \"parent_id\": \"root\", \"attributes\": { \"text\": \"Ok\" } } }` (Tipos: 0:Linear, 1:Relative, 3:Button, 4:TextView, 8:ImageView...)\n"
             + "   - **Editar widget**: `{ \"op\": \"update_widget\", \"xmlName\": \"main\", \"data\": { \"widget_id\": \"b1\", \"attributes\": { \"android:text\": \"Novo texto\", \"android:background\": \"@drawable/bg_card\" } } }`\n"
             + "   - **Remover widget**: `{ \"op\": \"remove_widget\", \"xmlName\": \"main\", \"data\": { \"widget_id\": \"b1\" } }`\n\n"
+            + "9. **CLASSES JAVA (Helper, Utils, Model, etc.)**:\n"
+            + "   - **CRIAR classe**: `{ \"op\": \"create_java_file\", \"data\": { \"file_name\": \"MyHelper\", \"content\": \"package com.example;\\n\\npublic class MyHelper {\\n    // ...\\n}\" } }`\n"
+            + "   - **EDITAR classe existente**: `{ \"op\": \"edit_java_file\", \"data\": { \"file_name\": \"MyHelper\", \"content\": \"package com.example;\\n\\npublic class MyHelper {\\n    // código atualizado\\n}\" } }`\n"
+            + "   - **DELETAR classe**: `{ \"op\": \"delete_java_file\", \"data\": { \"file_name\": \"MyHelper\" } }`\n"
+            + "   - **REGRAS**: Inclua SEMPRE o `package` correto no topo. Use `file_name` apenas com o nome simples da classe (sem .java). Para usar a classe nas activities, combine com `add_import` e `inject_code`.\n\n"
+            + "10. **PERMISSÕES (AndroidManifest.xml)**:\n"
+            + "   - **ADICIONAR permissão**: `{ \"op\": \"add_permission\", \"data\": { \"name\": \"android.permission.INTERNET\" } }` — Adiciona ao AndroidManifest.xml\n"
+            + "   - **Forma curta aceita**: `{ \"op\": \"add_permission\", \"data\": { \"name\": \"INTERNET\" } }` → adiciona `android.permission.INTERNET` automaticamente\n"
+            + "   - **REMOVER permissão**: `{ \"op\": \"remove_permission\", \"data\": { \"name\": \"android.permission.CAMERA\" } }`\n"
+            + "   - **Permissões comuns**: `INTERNET`, `CAMERA`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, `RECORD_AUDIO`, `VIBRATE`, `BLUETOOTH`, `READ_CONTACTS`\n"
+            + "   - **REGRA**: Sempre adicione permissões necessárias no mesmo array de operações quando injetar código que as exija. Ex: usar câmera → adicione `CAMERA`; fazer requisições de rede → adicione `INTERNET`.\n\n"
+            + "11. **MATERIAL 3 (Google Material Design 3)**:\n"
+            + "   - **ATIVAR Material 3**: `{ \"op\": \"enable_material3\" }` — Habilita AppCompat + Material3 no projeto (equivale a marcar o checkbox manualmente)\n"
+            + "   - **REGRA**: Se o usuário pedir design profissional/moderno ou componentes M3, SEMPRE inclua `enable_material3` no início do array de operações.\n"
+            + "   - **Após ativar**, use nos layouts: `MaterialButton`, `TextInputLayout`, `MaterialCardView`, `BottomNavigationView`, `FloatingActionButton`, `Chip`, `ChipGroup`, `MaterialAlertDialog`.\n"
+            + "   - **Atributos M3**: `style=\"@style/Widget.Material3.Button\"`, `style=\"@style/Widget.Material3.CardView.Elevated\"`, `app:cornerRadius=\"12dp\"`\n"
+            + "   - **Cores M3**: use `?attr/colorPrimary`, `?attr/colorSecondary`, `?attr/colorSurface`, `?attr/colorOnSurface`, `?attr/colorSurfaceVariant`\n"
+            + "   - **Imports necessários**: `com.google.android.material.button.MaterialButton`, `com.google.android.material.card.MaterialCardView`, etc.\n\n"
+            + "12. **VARIÁVEIS E LISTAS** (declaradas no editor de lógica do Sketchware):\n"
+            + "   - **CRIAR variável**: `{ \"op\": \"add_variable\", \"data\": { \"java_name\": \"MainActivity\", \"name\": \"contador\", \"var_type\": \"Number\" } }`\n"
+            + "   - Tipos de var_type: `\"String\"`, `\"Number\"`, `\"Boolean\"`, `\"Map\"` (Map = HashMap<String, Object>)\n"
+            + "   - **CRIAR lista**: `{ \"op\": \"add_list\", \"data\": { \"java_name\": \"MainActivity\", \"name\": \"minhaLista\", \"list_type\": \"Map\" } }`\n"
+            + "   - Tipos de list_type: `\"String\"`, `\"Number\"`, `\"Map\"` — use SEMPRE `\"Map\"` para dados de RecyclerView/ListView com múltiplos campos\n"
+            + "   - **REGRA**: Toda variável ou lista usada em `inject_code` deve ser declarada com `add_variable`/`add_list` ANTES de ser usada no código.\n"
+            + "   - **HashMap em Map List**: para adicionar item → `hashMap.put(\"key\", value); lista.add(hashMap);`\n\n"
+            + "13. **LISTAS COM CUSTOM VIEW (ListView/GridView com item personalizado)** — SEQUÊNCIA OBRIGATÓRIA, TODOS OS 4 PASSOS:\n"
+            + "   ⚠️ **REGRA CRÍTICA**: Para ListView com item personalizado, você DEVE emitir TODOS os passos abaixo no mesmo array de operações. Omitir qualquer passo causa falha visual.\n\n"
+            + "   **PASSO 1 — OBRIGATÓRIO: Criar o layout do item com widgets reais** (NÃO use placeholder — coloque widgets de verdade):\n"
+            + "   ```json\n"
+            + "   { \"op\": \"edit_layout_xml\", \"xmlName\": \"item_lista\", \"data\": { \"xml_content\": \"<LinearLayout xmlns:android=\\\"http://schemas.android.com/apk/res/android\\\" android:layout_width=\\\"match_parent\\\" android:layout_height=\\\"wrap_content\\\" android:orientation=\\\"horizontal\\\" android:padding=\\\"12dp\\\"><ImageView android:id=\\\"@+id/imgItem\\\" android:layout_width=\\\"48dp\\\" android:layout_height=\\\"48dp\\\" android:scaleType=\\\"centerCrop\\\"/><LinearLayout android:layout_width=\\\"0dp\\\" android:layout_height=\\\"wrap_content\\\" android:layout_weight=\\\"1\\\" android:orientation=\\\"vertical\\\" android:paddingStart=\\\"8dp\\\"><TextView android:id=\\\"@+id/txTitulo\\\" android:layout_width=\\\"match_parent\\\" android:layout_height=\\\"wrap_content\\\" android:textSize=\\\"16sp\\\" android:textStyle=\\\"bold\\\"/><TextView android:id=\\\"@+id/txSubtitulo\\\" android:layout_width=\\\"match_parent\\\" android:layout_height=\\\"wrap_content\\\" android:textSize=\\\"13sp\\\"/></LinearLayout></LinearLayout>\" } }\n"
+            + "   ```\n"
+            + "   ↑ ADAPTE o XML ao contexto do usuário (quantos campos, quais tipos de widget), mas SEMPRE coloque widgets reais com IDs reais.\n\n"
+            + "   **PASSO 2 — OBRIGATÓRIO: Conectar o ListView ao layout do item** (SEM ISSO o ListView NÃO exibe o item personalizado no visual):\n"
+            + "   ```json\n"
+            + "   { \"op\": \"set_custom_view\", \"xmlName\": \"main\", \"data\": { \"view_id\": \"listview1\", \"custom_view\": \"item_lista\" } }\n"
+            + "   ```\n"
+            + "   ↑ `xmlName` = tela que contém o ListView · `view_id` = ID do ListView · `custom_view` = nome do layout do item (sem .xml)\n\n"
+            + "   **PASSO 3 — OBRIGATÓRIO: Registrar o evento onBindCustomView**:\n"
+            + "   ```json\n"
+            + "   { \"op\": \"add_view_event\", \"xmlName\": \"main\", \"data\": { \"java_name\": \"MainActivity\", \"view_id\": \"listview1\", \"event_name\": \"onBindCustomView\", \"code\": \"HashMap<String, Object> _item = (HashMap<String, Object>) minhaLista.get(position);\\nTextView _txTitulo = (TextView) view.findViewById(R.id.txTitulo);\\n_txTitulo.setText(_item.get(\\\"titulo\\\").toString());\" } }\n"
+            + "   ```\n"
+            + "   ↑ Parâmetros disponíveis dentro do onBindCustomView: `position` (int) e `view` (View — a raiz do item renderizado). Use `view.findViewById(R.id.xxx)` para acessar os widgets do item.\n\n"
+            + "   **PASSO 4 — Popular a lista e notificar o adapter** (via inject_code no evento desejado, ex: onCreate):\n"
+            + "   ```java\n"
+            + "   HashMap<String, Object> _map = new HashMap<>();\n"
+            + "   _map.put(\"titulo\", \"Item 1\");\n"
+            + "   minhaLista.add(_map);\n"
+            + "   // Para atualizar após adicionar itens:\n"
+            + "   if (listview1.getAdapter() instanceof android.widget.BaseAdapter) {\n"
+            + "       ((android.widget.BaseAdapter) listview1.getAdapter()).notifyDataSetChanged();\n"
+            + "   }\n"
+            + "   ```\n\n"
+            + "   - **PROIBIDO**: Não injete código de adapter manualmente — o Sketchware gera o adapter automaticamente a partir do `onBindCustomView`.\n"
+            + "   - **GridView**: use `ListView` (tipo 9) com `android:numColumns` no XML para comportamento de grid.\n\n"
+            + "14. **COMPONENTES** (Firebase, Rede, Bluetooth, Localização, etc.):\n"
+            + "   - **Sintaxe**: `{ \"op\": \"add_component\", \"data\": { \"java_name\": \"MainActivity\", \"name\": \"meuBanco\", \"component_type\": \"FirebaseDB\", \"param1\": \"/\" } }`\n"
+            + "   - **`name`** = ID do componente (identificador único na atividade, ex: `\"meuBanco\"`, `\"rede\"`)\n"
+            + "   - **`component_type`** aceita: `\"FirebaseDB\"` (param1=caminho ref, ex: `\"/\"`) · `\"FirebaseAuth\"` · `\"FirebaseStorage\"` (param1=caminho ref) · `\"RequestNetwork\"` · `\"SharedPreferences\"` (param1=nome do arquivo, ex: `\"config\"`) · `\"Timer\"` · `\"BluetoothConnect\"` · `\"LocationManager\"` · `\"FCM\"` · `\"Camera\"` · `\"MediaPlayer\"` · `\"SoundPool\"` · `\"TextToSpeech\"` · `\"SpeechToText\"` · `\"InterstitialAd\"` · `\"RewardedVideoAd\"` · `\"Notification\"` · `\"Dialog\"` · `\"ProgressDialog\"` · `\"Vibrator\"` · `\"Gyroscope\"` · `\"FilePicker\"` · `\"ObjectAnimator\"`\n"
+            + "   - **REGRA**: Sempre adicione um componente ANTES de usar seus métodos em `inject_code`. Ex: para usar `requestNetwork1.startRequestNetwork(...)`, primeiro emita `add_component` com `component_type: \"RequestNetwork\"` e `name: \"requestNetwork1\"`.\n"
+            + "   - **Componentes que precisam de `param1`**: `FirebaseDB` e `FirebaseStorage` exigem o caminho de referência (ex: `\"/users\"`). `SharedPreferences` aceita o nome do arquivo de preferências (ex: `\"config\"`). Os demais não precisam de `param1`.\n"
+            + "   - **Exemplo RequestNetwork**: `{ \"op\": \"add_component\", \"data\": { \"java_name\": \"MainActivity\", \"name\": \"rede\", \"component_type\": \"RequestNetwork\" } }` — depois em inject_code: `rede.startRequestNetwork(\"GET\", \"https://api.example.com/data\", \"\", rede_request_listener);`\n"
+            + "   - **Exemplo SharedPreferences**: `{ \"op\": \"add_component\", \"data\": { \"java_name\": \"MainActivity\", \"name\": \"prefs\", \"component_type\": \"SharedPreferences\", \"param1\": \"config\" } }`\n\n"
             + "### REGRAS DE DESIGN PROFISSIONAL (OBRIGATÓRIO):\n"
             + "- **ImageView**: SEMPRE inclua `android:scaleType=\"fitCenter\"` e `android:adjustViewBounds=\"true\"` em todo ImageView.\n"
             + "- **Drawables como fundos**: Prefira drawables (shapes/gradients) como `android:background=\"@drawable/nome\"` ao invés de cores brutas para design profissional.\n"

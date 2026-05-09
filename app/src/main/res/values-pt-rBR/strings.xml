@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Categorias de blocos -->
+    <string name="block_category_component_func">Componente</string>
+    <string name="block_category_control">Controle</string>
+    <string name="block_category_file">Arquivo</string>
+    <string name="block_category_list">Lista</string>
+    <string name="block_category_math">Matemática</string>
+    <string name="block_category_moreblock">Mais Blocos</string>
+    <string name="block_category_operator">Operador</string>
+    <string name="block_category_var">Variável</string>
+    <string name="block_category_view_func">Visualização</string>
+
+    <!-- Strings dos blocos individuais -->
+
+    <!-- Listas de inteiros -->
+    <string name="block_add_list_int_head">adicionar</string>
+    <string name="block_add_list_int_body_1">em</string>
+    <string name="block_add_list_map_head">adicionar chave</string>
+    <string name="block_add_list_map_body_1">valor</string>
+    <string name="block_add_list_map_body_2">em</string>
+    <string name="block_add_list_str_head">adicionar</string>
+    <string name="block_add_list_str_body_1">em</string>
+    <string name="block_add_map_to_list_head">adicionar</string>
+    <string name="block_add_map_to_list_body_1">em</string>
+    <string name="block_add_source_directly_head">adicionar código diretamente</string>
+    <string name="block_adview_load_ad_tail">carregar</string>
+    <string name="block_and_body_1">e</string>
+    <string name="block_move_to_bin">Mover para a lixeira</string>
+
+    <!-- Bluetooth -->
+    <string name="block_bluetoothconnect_activate_bluetooth_tail">ativar bluetooth</string>
+    <string name="block_bluetoothconnect_get_paired_devices_body_1">obter dispositivos pareados em</string>
+    <string name="block_bluetoothconnect_get_random_uuid_tail">obter uuid aleatório</string>
+    <string name="block_bluetoothconnect_is_bluetooth_activated_tail">bluetooth está ativado</string>
+    <string name="block_bluetoothconnect_is_bluetooth_enabled_tail">bluetooth está habilitado</string>
+    <string name="block_bluetoothconnect_ready_connection_body_1">preparar conexão com tag</string>
+    <string name="block_bluetoothconnect_ready_connection_to_uuid_body_1">preparar conexão com uuid</string>
+    <string name="block_bluetoothconnect_ready_connection_to_uuid_body_2">com tag</string>
+    <string name="block_bluetoothconnect_send_data_body_1">enviar dados</string>
+    <string name="block_bluetoothconnect_send_data_body_2">com tag</string>
+    <string name="block_bluetoothconnect_start_connection_body_1">iniciar conexão com endereço</string>
+    <string name="block_bluetoothconnect_start_connection_body_2">com tag</string>
+    <string name="block_bluetoothconnect_start_connection_to_uuid_body_1">iniciar conexão com uuid</string>
+    <string name="block_bluetoothconnect_start_connection_to_uuid_body_2">e endereço</string>
+    <string name="block_bluetoothconnect_start_connection_to_uuid_body_3">com tag</string>
+    <string name="block_bluetoothconnect_stop_connection_body_1">encerrar conexão com tag</string>
+    <string name="block_break_head">parar</string>
+
+    <!-- Calendar -->
+    <string name="block_calendar_add_body_1">adicionar</string>
+    <string name="block_calendar_add_body_2">valor</string>
+    <string name="block_calendar_diff_head">Diferença</string>
+    <string name="block_calendar_diff_body_1">-</string>
+    <string name="block_calendar_format_body_1">Formato</string>
+    <string name="block_calendar_get_now_tail">obterAgora</string>
+    <string name="block_calendar_get_time_tail">obterTempo(ms)</string>
+    <string name="block_calendar_set_body_1">definir</string>
+    <string name="block_calendar_set_body_2">valor</string>
+    <string name="block_calendar_set_time_body_1">definirTempo</string>
+    <string name="block_calendar_set_time_tail">ms</string>
+    <string name="block_calendarview_get_date_tail">obterData(ms)</string>
+    <string name="block_calendarview_set_date_body_1">definirData</string>
+    <string name="block_calendarview_set_date_tail">ms</string>
+    <string name="block_calendarview_set_max_date_body_1">definirDataMáxima</string>
+    <string name="block_calendarview_set_max_date_tail">ms</string>
+    <string name="block_calendarview_set_min_date_body_1">definirDataMínima</string>
+    <string name="block_calendarview_set_min_date_tail">ms</string>
+
+    <!-- Camera -->
+    <string name="block_camera_start_take_picture_tail">tirar foto</string>
+
+    <!-- Listas gerais -->
+    <string name="block_clear_list_head">limpar</string>
+    <string name="block_close_drawer_head">fecharGaveta</string>
+    <string name="block_contain_list_int_body_1">contém</string>
+    <string name="block_contain_list_map_body_1">contém em</string>
+    <string name="block_contain_list_map_body_2">chave</string>
+    <string name="block_contain_list_str_body_1">contém</string>
+    <string name="block_copy_to_clipboard_head">copiarParaÁreaDeTransferência</string>
+
+    <!-- Bitmap -->
+    <string name="block_crop_bitmap_center_head">recortar imagem ao centro do caminho</string>
+    <string name="block_crop_bitmap_center_body_1">para caminho</string>
+    <string name="block_crop_bitmap_center_body_2">largura</string>
+    <string name="block_crop_bitmap_center_body_3">altura</string>
+    <string name="block_decrease_int_tail">diminuir 1</string>
+    <string name="block_delete_list_head">excluir em</string>
+    <string name="block_delete_list_body_1">de</string>
+
+    <!-- Dialog -->
+    <string name="block_dialog_cancel_button_body_1">Botão Cancelar</string>
+    <string name="block_dialog_cancel_button_tail">Clicado</string>
+    <string name="block_dialog_dismiss_tail">fechar</string>
+    <string name="block_dialog_neutral_button_body_1">Botão Neutro</string>
+    <string name="block_dialog_neutral_button_tail">Clicado</string>
+    <string name="block_dialog_ok_button_body_1">Botão OK</string>
+    <string name="block_dialog_ok_button_tail">Clicado</string>
+    <string name="block_dialog_set_message_body_1">definir mensagem</string>
+    <string name="block_dialog_set_title_body_1">definir título</string>
+    <string name="block_dialog_show_tail">exibir</string>
+    <string name="block_divide_body_1">/</string>
+    <string name="block_do_toast_head">Toast</string>
+
+    <!-- Controle -->
+    <string name="block_else_head">senão</string>
+    <string name="block_equal_body_1">=</string>
+    <string name="block_false_head">falso</string>
+
+    <!-- Arquivo -->
+    <string name="block_file_get_data_body_1">obter dado chave</string>
+    <string name="block_file_picker_start_pick_files_tail">selecionar arquivos</string>
+    <string name="block_file_remove_data_body_1">remover dado chave</string>
+    <string name="block_file_set_data_body_1">definir dado chave</string>
+    <string name="block_file_set_data_body_2">valor</string>
+    <string name="block_fileutil_copy_head">copiar arquivo no caminho</string>
+    <string name="block_fileutil_copy_body_1">para caminho</string>
+    <string name="block_fileutil_delete_head">excluir arquivo no caminho</string>
+    <string name="block_fileutil_ends_with_body_1">termina com</string>
+    <string name="block_fileutil_get_last_segment_path_head">obter último segmento do caminho</string>
+    <string name="block_fileutil_is_dir_head">caminho</string>
+    <string name="block_fileutil_is_dir_tail">é diretório</string>
+    <string name="block_fileutil_is_exist_head">arquivo existe no caminho</string>
+    <string name="block_fileutil_is_file_head">caminho</string>
+    <string name="block_fileutil_is_file_tail">é arquivo</string>
+    <string name="block_fileutil_length_head">obter tamanho do caminho</string>
+    <string name="block_fileutil_list_dir_head">listar arquivos no caminho</string>
+    <string name="block_fileutil_list_dir_body_1">em</string>
+    <string name="block_fileutil_make_dir_head">criar diretório no caminho</string>
+    <string name="block_fileutil_move_head">mover arquivo do caminho</string>
+    <string name="block_fileutil_move_body_1">para caminho</string>
+    <string name="block_fileutil_read_head">ler arquivo no caminho</string>
+    <string name="block_fileutil_starts_with_body_1">começa com</string>
+    <string name="block_fileutil_write_head">escrever String</string>
+    <string name="block_fileutil_write_body_1">no caminho</string>
+    <string name="block_finish_activity_head">Finalizar</string>
+    <string name="block_finish_activity_tail">Activity</string>
+
+    <!-- Firebase -->
+    <string name="block_firebase_add_body_1">adicionar chave</string>
+    <string name="block_firebase_add_body_2">valor</string>
+    <string name="block_firebase_delete_body_1">excluir chave</string>
+    <string name="block_firebase_get_children_body_1">obter filhos em</string>
+    <string name="block_firebase_get_children_tail">então</string>
+    <string name="block_firebase_get_key_tail">push obterChave</string>
+    <string name="block_firebase_push_body_1">push valor</string>
+    <string name="block_firebase_start_listen_tail">iniciar escuta</string>
+    <string name="block_firebase_stop_listen_tail">parar escuta</string>
+    <string name="block_firebaseauth_create_user_body_1">criar usuário com Email</string>
+    <string name="block_firebaseauth_create_user_body_2">e Senha</string>
+    <string name="block_firebaseauth_get_email_tail">FirebaseAuth obterEmail</string>
+    <string name="block_firebaseauth_get_uid_tail">FirebaseAuth obterUid</string>
+    <string name="block_firebaseauth_is_logged_in_tail">FirebaseAuth estáLogado</string>
+    <string name="block_firebaseauth_reset_password_body_1">enviar email de redefinição de senha para</string>
+    <string name="block_firebaseauth_signin_anonymously_tail">entrar anonimamente</string>
+    <string name="block_firebaseauth_signin_user_body_1">entrar com Email</string>
+    <string name="block_firebaseauth_signin_user_body_2">e Senha</string>
+    <string name="block_firebaseauth_signout_tail">FirebaseAuth sair</string>
+    <string name="block_firebasestorage_delete_body_1">excluir arquivo url</string>
+    <string name="block_firebasestorage_download_file_body_1">baixar arquivo url</string>
+    <string name="block_firebasestorage_download_file_body_2">para caminho</string>
+    <string name="block_firebasestorage_upload_file_body_1">enviar arquivo no caminho</string>
+    <string name="block_firebasestorage_upload_file_body_2">salvar como</string>
+
+    <!-- Controle -->
+    <string name="block_forever_head">sempre</string>
+    <string name="block_get_alpha_tail">obterAlpha</string>
+    <string name="block_get_at_list_int_head">obter em</string>
+    <string name="block_get_at_list_int_body_1">de</string>
+    <string name="block_get_at_list_map_head">obter valor em</string>
+    <string name="block_get_at_list_map_body_1">chave</string>
+    <string name="block_get_at_list_map_body_2">de</string>
+    <string name="block_get_at_list_str_head">obter em</string>
+    <string name="block_get_at_list_str_body_1">de</string>
+    <string name="block_get_checked_tail">obterMarcado</string>
+    <string name="block_get_enable_tail">obterAtivado</string>
+    <string name="block_get_external_storage_dir_head">obter diretório de armazenamento externo</string>
+    <string name="block_get_jpeg_rotate_head">obter rotação jpeg do caminho</string>
+    <string name="block_get_location_x_tail">obterPosicaoX</string>
+    <string name="block_get_location_y_tail">obterPosicaoY</string>
+    <string name="block_get_map_in_list_head">obter em</string>
+    <string name="block_get_map_in_list_body_1">de</string>
+    <string name="block_get_map_in_list_body_2">em</string>
+    <string name="block_get_package_data_dir_head">obter diretório de dados do pacote</string>
+    <string name="block_get_public_dir_head">obter diretório público tipo</string>
+    <string name="block_get_rotate_tail">obterRotação</string>
+    <string name="block_get_scale_x_tail">obterEscalaX</string>
+    <string name="block_get_scale_y_tail">obterEscalaY</string>
+    <string name="block_get_text_tail">obterTexto</string>
+    <string name="block_get_translation_x_tail">obterTranslacaoX</string>
+    <string name="block_get_translation_y_tail">obterTranslacaoY</string>
+
+    <!-- Giroscópio -->
+    <string name="block_gyroscope_start_listen_tail">Sensor iniciar</string>
+    <string name="block_gyroscope_stop_listen_tail">Sensor parar</string>
+
+    <!-- Controle -->
+    <string name="block_if_head">se</string>
+    <string name="block_if_tail">então</string>
+    <string name="block_if_else_head">se</string>
+    <string name="block_if_else_tail">então</string>
+    <string name="block_increase_int_tail">aumentar 1</string>
+    <string name="block_indexof_list_int_head">índice</string>
+    <string name="block_indexof_list_int_body_1">em</string>
+    <string name="block_indexof_list_str_head">índice</string>
+    <string name="block_indexof_list_str_body_1">em</string>
+    <string name="block_insert_list_int_head">inserir</string>
+    <string name="block_insert_list_int_body_1">em</string>
+    <string name="block_insert_list_int_body_2">em</string>
+    <string name="block_insert_list_map_head">inserir chave</string>
+    <string name="block_insert_list_map_body_1">valor</string>
+    <string name="block_insert_list_map_body_2">em</string>
+    <string name="block_insert_list_map_body_3">em</string>
+    <string name="block_insert_list_str_head">inserir</string>
+    <string name="block_insert_list_str_body_1">em</string>
+    <string name="block_insert_list_str_body_2">em</string>
+    <string name="block_insert_map_to_list_head">inserir</string>
+    <string name="block_insert_map_to_list_body_1">em</string>
+    <string name="block_insert_map_to_list_body_2">em</string>
+
+    <!-- Intent -->
+    <string name="block_intent_get_string_head">Activity obter extra chave</string>
+    <string name="block_intent_put_extra_body_1">putExtra chave</string>
+    <string name="block_intent_put_extra_body_2">valor</string>
+    <string name="block_intent_set_action_body_1">definirAção</string>
+    <string name="block_intent_set_data_body_1">definirDado</string>
+    <string name="block_intent_set_flags_body_1">definirFlags</string>
+    <string name="block_intent_set_screen_body_1">definirTela</string>
+
+    <!-- Anúncio Intersticial -->
+    <string name="block_interstitialad_create_tail">criar</string>
+    <string name="block_interstitialad_load_ad_tail">carregar</string>
+    <string name="block_interstitialad_show_tail">exibir</string>
+    <string name="block_is_drawer_open_head">gavetaEstaAberta</string>
+    <string name="block_length_list_head">tamanho de</string>
+    <string name="block_list_get_checked_count_tail">obterQtdMarcados</string>
+    <string name="block_list_get_checked_position_tail">obterPosicaoMarcada</string>
+    <string name="block_list_get_checked_positions_body_1">obterPosicoesMarcadas em</string>
+    <string name="block_list_map_to_str_tail">para String JSON</string>
+    <string name="block_list_refresh_tail">atualizarDados</string>
+    <string name="block_list_set_custom_view_data_body_1">definirDadosListaPersonalizada</string>
+    <string name="block_list_set_data_body_1">definirDadosListView</string>
+    <string name="block_list_set_item_checked_body_1">marcarItem pos</string>
+    <string name="block_list_set_item_checked_body_2">valor</string>
+    <string name="block_list_smooth_scrollto_body_1">rolarSuavementePara</string>
+
+    <!-- Localização -->
+    <string name="block_locationmanager_remove_updates_tail">remover atualizações</string>
+    <string name="block_locationmanager_request_location_updates_body_1">solicitar atualizações de localização tipo</string>
+    <string name="block_locationmanager_request_location_updates_body_2">tempo mínimo</string>
+    <string name="block_locationmanager_request_location_updates_body_3">distância mínima</string>
+
+    <!-- Mapa -->
+    <string name="block_map_clear_tail">limpar</string>
+    <string name="block_map_contain_key_body_1">contém chave</string>
+    <string name="block_map_create_new_tail">criar novo mapa</string>
+    <string name="block_map_get_all_keys_body_1">obter todas as chaves em</string>
+    <string name="block_map_get_body_1">obter chave</string>
+    <string name="block_map_is_empty_tail">está vazio</string>
+    <string name="block_map_put_body_1">inserir chave</string>
+    <string name="block_map_put_body_2">valor</string>
+    <string name="block_map_remove_key_body_1">remover chave</string>
+    <string name="block_map_size_tail">tamanho</string>
+    <string name="block_map_to_str_tail">para String JSON</string>
+
+    <!-- MapView -->
+    <string name="block_mapview_add_marker_body_1">adicionar marcador id</string>
+    <string name="block_mapview_add_marker_body_2">posição lat</string>
+    <string name="block_mapview_add_marker_body_3">lng</string>
+    <string name="block_mapview_move_camera_body_1">mover câmera lat</string>
+    <string name="block_mapview_move_camera_body_2">lng</string>
+    <string name="block_mapview_set_map_type_body_1">definir tipo de mapa</string>
+    <string name="block_mapview_set_marker_color_body_1">marcador id</string>
+    <string name="block_mapview_set_marker_color_body_2">definir cor</string>
+    <string name="block_mapview_set_marker_color_body_3">alpha</string>
+    <string name="block_mapview_set_marker_icon_body_1">marcador id</string>
+    <string name="block_mapview_set_marker_icon_body_2">definir ícone</string>
+    <string name="block_mapview_set_marker_info_body_1">marcador id</string>
+    <string name="block_mapview_set_marker_info_body_2">definir título</string>
+    <string name="block_mapview_set_marker_info_body_3">trecho</string>
+    <string name="block_mapview_set_marker_position_body_1">marcador id</string>
+    <string name="block_mapview_set_marker_position_body_2">definir posição lat</string>
+    <string name="block_mapview_set_marker_position_body_3">lng</string>
+    <string name="block_mapview_set_marker_visible_body_1">marcador id</string>
+    <string name="block_mapview_set_marker_visible_body_2">definir visível</string>
+    <string name="block_mapview_zoom_in_tail">ampliar</string>
+    <string name="block_mapview_zoom_out_tail">reduzir</string>
+    <string name="block_mapview_zoom_to_body_1">zoom para</string>
+
+    <!-- Matemática -->
+    <string name="block_math_abs_head">valor absoluto de</string>
+    <string name="block_math_acos_head">arccos</string>
+    <string name="block_math_asin_head">arcsen</string>
+    <string name="block_math_atan_head">arctan</string>
+    <string name="block_math_ceil_head">teto</string>
+    <string name="block_math_floor_head">piso</string>
+    <string name="block_math_max_head">máximo de</string>
+    <string name="block_math_max_body_1">e</string>
+    <string name="block_math_min_head">mínimo de</string>
+    <string name="block_math_min_body_1">e</string>
+    <string name="block_math_pow_body_1">elevado a</string>
+    <string name="block_math_pow_tail">potência</string>
+    <string name="block_math_round_head">arredondar</string>
+    <string name="block_math_sqrt_head">raiz quadrada de</string>
+    <string name="block_math_to_degree_head">Radiano</string>
+    <string name="block_math_to_degree_tail">para Grau</string>
+    <string name="block_math_to_radian_head">Grau</string>
+    <string name="block_math_to_radian_tail">para Radiano</string>
+
+    <!-- MediaPlayer -->
+    <string name="block_mediaplayer_create_body_1">criar</string>
+    <string name="block_mediaplayer_get_current_tail">obter duração atual</string>
+    <string name="block_mediaplayer_get_duration_tail">obter duração da música</string>
+    <string name="block_mediaplayer_is_looping_tail">está em loop</string>
+    <string name="block_mediaplayer_is_playing_tail">está reproduzindo</string>
+    <string name="block_mediaplayer_pause_tail">pausar</string>
+    <string name="block_mediaplayer_release_tail">liberar</string>
+    <string name="block_mediaplayer_reset_tail">reiniciar</string>
+    <string name="block_mediaplayer_seek_body_1">ir para</string>
+    <string name="block_mediaplayer_set_looping_body_1">definir loop</string>
+    <string name="block_mediaplayer_start_tail">iniciar</string>
+    <string name="block_minus_body_1">-</string>
+    <string name="block_not_head">não</string>
+
+    <!-- ObjectAnimator -->
+    <string name="block_objectanimator_cancel_tail">cancelar</string>
+    <string name="block_objectanimator_is_running_tail">está em execução</string>
+    <string name="block_objectanimator_set_duration_body_1">definir duração</string>
+    <string name="block_objectanimator_set_from_to_body_1">definir valores de</string>
+    <string name="block_objectanimator_set_from_to_body_2">para</string>
+    <string name="block_objectanimator_set_interpolator_body_1">definir interpolador</string>
+    <string name="block_objectanimator_set_property_body_1">definir propriedade</string>
+    <string name="block_objectanimator_set_repeat_count_body_1">definir contagem de repetições</string>
+    <string name="block_objectanimator_set_repeat_mode_body_1">definir modo de repetição</string>
+    <string name="block_objectanimator_set_target_body_1">definir alvo</string>
+    <string name="block_objectanimator_set_value_body_1">definir valor</string>
+    <string name="block_objectanimator_start_tail">iniciar</string>
+    <string name="block_open_drawer_head">abrirGaveta</string>
+    <string name="block_or_body_1">ou</string>
+    <string name="block_plus_body_1">+</string>
+
+    <!-- SeekBar -->
+    <string name="block_progressbar_set_indeterminate_body_1">definirIndeterminado</string>
+    <string name="block_random_head">escolher aleatório</string>
+    <string name="block_random_body_1">até</string>
+    <string name="block_repeat_head">repetir</string>
+    <string name="block_request_focus_tail">solicitar foco</string>
+
+    <!-- Rede -->
+    <string name="block_requestnetwork_set_headers_body_1">definir cabeçalhos</string>
+    <string name="block_requestnetwork_set_params_body_1">definir parâmetros</string>
+    <string name="block_requestnetwork_set_params_body_2">para tipo de requisição</string>
+    <string name="block_requestnetwork_start_request_network_body_1">iniciar requisição ao método</string>
+    <string name="block_requestnetwork_start_request_network_body_2">para url</string>
+    <string name="block_requestnetwork_start_request_network_body_3">com tag</string>
+
+    <!-- Imagens -->
+    <string name="block_resize_bitmap_circle_head">redimensionar imagem para círculo do caminho</string>
+    <string name="block_resize_bitmap_circle_body_1">para caminho</string>
+    <string name="block_resize_bitmap_ratio_head">redimensionar imagem mantendo proporção do caminho</string>
+    <string name="block_resize_bitmap_ratio_body_1">para caminho</string>
+    <string name="block_resize_bitmap_ratio_body_2">tamanho máximo</string>
+    <string name="block_resize_bitmap_rounded_head">redimensionar imagem arredondada do caminho</string>
+    <string name="block_resize_bitmap_rounded_body_1">para caminho</string>
+    <string name="block_resize_bitmap_rounded_body_2">pixels arredondados</string>
+    <string name="block_resize_bitmap_square_head">redimensionar imagem para quadrado do caminho</string>
+    <string name="block_resize_bitmap_square_body_1">para caminho</string>
+    <string name="block_resize_bitmap_square_body_2">tamanho máximo</string>
+    <string name="block_rest_body_1">%</string>
+    <string name="block_rotate_bitmap_head">rotacionar imagem do caminho</string>
+    <string name="block_rotate_bitmap_body_1">para caminho</string>
+    <string name="block_rotate_bitmap_body_2">ângulo</string>
+    <string name="block_scale_bitmap_head">escalar imagem do caminho</string>
+    <string name="block_scale_bitmap_body_1">para caminho</string>
+    <string name="block_scale_bitmap_body_2">x</string>
+    <string name="block_scale_bitmap_body_3">y</string>
+
+    <!-- SeekBar -->
+    <string name="block_seekbar_get_max_tail">obterMáximo</string>
+    <string name="block_seekbar_get_progress_tail">obterProgresso</string>
+    <string name="block_seekbar_set_max_body_1">definirMáximo</string>
+    <string name="block_seekbar_set_progress_body_1">definirProgresso</string>
+
+    <!-- Propriedades de View -->
+    <string name="block_set_alpha_body_1">definirAlpha</string>
+    <string name="block_set_at_list_map_head">definir chave</string>
+    <string name="block_set_at_list_map_body_1">valor</string>
+    <string name="block_set_at_list_map_body_2">em</string>
+    <string name="block_set_at_list_map_body_3">em</string>
+    <string name="block_set_bg_color_body_1">definirCorFundo</string>
+    <string name="block_set_bg_resource_body_1">definirRecursoFundo</string>
+    <string name="block_set_bitmap_brightness_head">definir brilho de imagem do caminho</string>
+    <string name="block_set_bitmap_brightness_body_1">para caminho</string>
+    <string name="block_set_bitmap_brightness_body_2">valor</string>
+    <string name="block_set_bitmap_color_filter_head">definir filtro de cor de imagem do caminho</string>
+    <string name="block_set_bitmap_color_filter_body_1">para caminho</string>
+    <string name="block_set_bitmap_color_filter_body_2">cor</string>
+    <string name="block_set_bitmap_contrast_head">definir contraste de imagem do caminho</string>
+    <string name="block_set_bitmap_contrast_body_1">para caminho</string>
+    <string name="block_set_bitmap_contrast_body_2">valor</string>
+    <string name="block_set_checked_body_1">definirMarcado</string>
+    <string name="block_set_clickable_body_1">definirClicável</string>
+    <string name="block_set_color_filter_body_1">definirFiltro</string>
+    <string name="block_set_enable_body_1">definirAtivado</string>
+    <string name="block_set_hint_body_1">definir texto de dica para</string>
+    <string name="block_set_hint_text_color_body_1">definir cor de dica para</string>
+    <string name="block_set_image_body_1">definirImagem</string>
+    <string name="block_set_image_file_path_body_1">definir imagem do caminho</string>
+    <string name="block_set_image_url_body_1">definir imagem da url</string>
+    <string name="block_set_rotate_body_1">definirRotação</string>
+    <string name="block_set_scale_x_body_1">definirEscalaX</string>
+    <string name="block_set_scale_y_body_1">definirEscalaY</string>
+    <string name="block_set_text_body_1">definirTexto</string>
+    <string name="block_set_text_color_body_1">definirCorTexto</string>
+    <string name="block_set_thumb_resource_body_1">definirRecursoPolegar</string>
+    <string name="block_set_title_head">Activity definir título</string>
+    <string name="block_set_track_resource_body_1">definirRecursoTrilha</string>
+    <string name="block_set_translation_x_body_1">definirTranslacaoX</string>
+    <string name="block_set_translation_y_body_1">definirTranslacaoY</string>
+    <string name="block_set_typeface_body_1">definirFonte</string>
+    <string name="block_set_typeface_body_2">com estilo</string>
+    <string name="block_set_var_bool_head">definir</string>
+    <string name="block_set_var_bool_body_1">para</string>
+    <string name="block_set_var_int_head">definir</string>
+    <string name="block_set_var_int_body_1">para</string>
+    <string name="block_set_var_str_head">definir</string>
+    <string name="block_set_var_str_body_1">para</string>
+    <string name="block_set_visible_body_1">definirVisível</string>
+    <string name="block_skew_bitmap_head">distorcer imagem do caminho</string>
+    <string name="block_skew_bitmap_body_1">para caminho</string>
+    <string name="block_skew_bitmap_body_2">x</string>
+    <string name="block_skew_bitmap_body_3">y</string>
+    <string name="block_smaller_body_1">&lt;</string>
+
+    <!-- SoundPool -->
+    <string name="block_soundpool_create_body_1">criar contagem máx de streams</string>
+    <string name="block_soundpool_load_body_1">carregar</string>
+    <string name="block_soundpool_stream_play_body_1">reproduzir SomID</string>
+    <string name="block_soundpool_stream_play_body_2">1 +</string>
+    <string name="block_soundpool_stream_play_tail">vez(es)</string>
+    <string name="block_soundpool_stream_stop_body_1">parar stream ID</string>
+
+    <!-- SpeechToText -->
+    <string name="block_speechtotext_shutdown_tail">encerrar</string>
+    <string name="block_speechtotext_start_listening_tail">iniciar escuta</string>
+    <string name="block_speechtotext_stop_listening_tail">parar escuta</string>
+    <string name="block_spn_get_selection_tail">obterSeleção</string>
+    <string name="block_spn_refresh_tail">atualizarDados</string>
+    <string name="block_spn_set_data_body_1">definirDadosSpinner</string>
+    <string name="block_spn_set_selection_body_1">definirSeleção</string>
+    <string name="block_start_activity_head">IniciarActivity</string>
+
+    <!-- Strings/JSON -->
+    <string name="block_str_to_list_map_head">JSON</string>
+    <string name="block_str_to_list_map_body_1">para</string>
+    <string name="block_str_to_map_head">JSON</string>
+    <string name="block_str_to_map_body_1">para</string>
+    <string name="block_string_contains_body_1">contém</string>
+    <string name="block_string_equals_body_1">igual a</string>
+    <string name="block_string_index_head">índice</string>
+    <string name="block_string_index_body_1">de</string>
+    <string name="block_string_join_head">juntar</string>
+    <string name="block_string_join_body_1">e</string>
+    <string name="block_string_last_index_head">último índice</string>
+    <string name="block_string_last_index_body_1">de</string>
+    <string name="block_string_length_head">tamanho de</string>
+    <string name="block_string_replace_body_1">substituir tudo</string>
+    <string name="block_string_replace_body_2">por</string>
+    <string name="block_string_replace_all_body_1">substituir tudo RegEx</string>
+    <string name="block_string_replace_all_body_2">por</string>
+    <string name="block_string_replace_first_body_1">substituir primeiro RegEx</string>
+    <string name="block_string_replace_first_body_2">por</string>
+    <string name="block_string_sub_body_1">substring</string>
+    <string name="block_string_sub_body_2">até</string>
+
+    <!-- TextToSpeech -->
+    <string name="block_texttospeech_is_speaking_tail">está falando</string>
+    <string name="block_texttospeech_set_pitch_body_1">definir tom</string>
+    <string name="block_texttospeech_set_speech_rate_body_1">definir velocidade de fala</string>
+    <string name="block_texttospeech_shutdown_tail">encerrar</string>
+    <string name="block_texttospeech_speak_body_1">falar</string>
+    <string name="block_texttospeech_stop_tail">parar</string>
+
+    <!-- Timer -->
+    <string name="block_timer_after_body_1">após</string>
+    <string name="block_timer_after_tail">ms</string>
+    <string name="block_timer_cancel_tail">cancelar</string>
+    <string name="block_timer_every_body_1">após</string>
+    <string name="block_timer_every_body_2">ms a cada</string>
+    <string name="block_timer_every_tail">ms</string>
+    <string name="block_times_body_1">*</string>
+    <string name="block_to_lower_case_head">paraMaiúscula</string>
+    <string name="block_to_number_head">paraNúmero</string>
+    <string name="block_to_string_format_body_1">paraFormatoDecimal</string>
+    <string name="block_to_string_head">paraString</string>
+    <string name="block_to_string_tail">sem decimal</string>
+    <string name="block_to_string_with_decimal_head">paraString</string>
+    <string name="block_to_string_with_decimal_tail">com decimal</string>
+    <string name="block_to_upper_case_head">paraMaiúscula</string>
+    <string name="block_trim_head">remover espaços</string>
+    <string name="block_true_head">verdadeiro</string>
+
+    <!-- Vibrador -->
+    <string name="block_vibrator_action_body_1">vibrar por</string>
+    <string name="block_vibrator_action_tail">ms</string>
+
+    <!-- View -->
+    <string name="block_view_on_click_head">Quando</string>
+    <string name="block_view_on_click_tail">clicado</string>
+
+    <!-- WebView -->
+    <string name="block_webview_can_go_back_tail">podeVoltarPágina</string>
+    <string name="block_webview_can_go_forward_tail">podeAvançarPágina</string>
+    <string name="block_webview_clear_cache_tail">limparCache</string>
+    <string name="block_webview_clear_history_tail">limparHistórico</string>
+    <string name="block_webview_go_back_tail">voltarPágina</string>
+    <string name="block_webview_go_forward_tail">avançarPágina</string>
+    <string name="block_webview_load_url_body_1">carregarUrl</string>
+    <string name="block_webview_set_cache_mode_body_1">definirModoCache</string>
+    <string name="block_webview_stop_loading_tail">pararCarregamento</string>
+    <string name="block_webview_zoom_in_tail">ampliar</string>
+    <string name="block_webview_zoom_out_tail">reduzir</string>
+    <string name="block_name">Nome do Bloco</string>
+
+    <!-- Descrições de componentes -->
+    <string name="component_description_bluetooth_connect">Bluetooth Connect é usado para conectar a outro dispositivo via Bluetooth.</string>
+    <string name="component_description_calendar">Calendar é usado para calcular tempo e data.</string>
+    <string name="component_description_camera">Camera é usado para tirar uma foto.</string>
+    <string name="component_description_dialog">Dialog é usado para criar um pop-up.</string>
+    <string name="component_description_file">File é usado para salvar dados localmente.</string>
+    <string name="component_description_file_picker">FilePicker é usado para selecionar arquivos brutos e de mídia, como imagens, sons e textos.</string>
+    <string name="component_description_file_picker_guide_mime_type_example">"MIME type é usado para identificar um tipo de dado.
+ex)\"*/*\", \"image/*\", \"audio/*\", \"text/*\""</string>
+    <string name="component_description_firebase_auth">Firebase Auth permite autenticação de usuários online.</string>
+    <string name="component_description_firebase_storage">Firebase Storage é criado para desenvolvedores que precisam armazenar e servir conteúdo gerado por usuários.</string>
+    <string name="component_description_gyrosope">"O giroscópio mede a taxa de rotação em rad/s em torno dos eixos x, y e z do dispositivo."</string>
+    <string name="component_description_intent">Intent é usado para iniciar uma nova Activity.</string>
+    <string name="component_description_interstitial_ad">Interstitial Ad permite adicionar anúncios em tela cheia.</string>
+    <string name="component_description_location_manager">LocationManager é usado para carregar dados da localização atual.</string>
+    <string name="component_description_mediaplayer">MediaPlayer é usado para reproduzir arquivos de áudio grandes.</string>
+    <string name="component_description_objectanimator">ObjectAnimator é usado para animar certas propriedades de uma View.</string>
+    <string name="component_description_request_network">RequestNetwork é usado para fazer chamadas a Web APIs.</string>
+    <string name="component_description_soundpool">SoundPool é usado para reproduzir efeitos sonoros curtos.</string>
+    <string name="component_description_speech_to_text">SpeechToText é usado para converter voz em texto.</string>
+    <string name="component_description_text_to_speech">TextToSpeech é usado para converter texto em voz.</string>
+    <string name="component_description_timer">Timer é usado para atrasar certas ações.</string>
+    <string name="component_description_vibrator">Vibrator é usado para vibrar o dispositivo.</string>
+    <string name="component_description_video_ad">Video Ad permite adicionar anúncios em vídeo.</string>
+    <string name="component_description_progress_dialog">Cria um diálogo de progresso no estilo pop-up.</string>
+    <string name="component_description_date_picker_dialog">Diálogo para escolher uma data.</string>
+    <string name="component_description_time_picker_dialog">Diálogo para escolher um horário.</string>
+    <string name="component_description_notification">Cria uma notificação.</string>
+    <string name="component_description_fragment_adapter">FragmentStatePagerAdapter é usado com TabLayout e ViewPager para gerenciar cada página.</string>
+    <string name="component_description_fb_phone_auth">Firebase Phone é usado com Firebase Auth para entrar no app com número de telefone.</string>
+    <string name="component_description_fb_dynamic">Firebase Dynamic Links são URLs inteligentes que permitem enviar usuários para qualquer local dentro do app.</string>
+    <string name="component_description_fb_fcm">Firebase Cloud Messaging é usado para enviar e receber notificações push.</string>
+    <string name="component_description_fb_google">Firebase Google Sign é usado com Firebase Auth para entrar no app com uma conta Google.</string>
+    <string name="component_description_fb_admin">OneSignal é líder em engajamento de clientes, com suporte a push mobile, push web, e-mail e mensagens in-app.</string>
+    <string name="component_description_fb_ads_banner">Facebook Ads Banner é usado para exibir um banner de anúncio com Facebook Ads.</string>
+    <string name="component_description_fb_ads_interstitial">Facebook Ads Interstitial é usado para exibir anúncios intersticiais com Facebook Ads.</string>
+
+</resources>

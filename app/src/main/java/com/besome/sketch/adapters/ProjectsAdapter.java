@@ -31,6 +31,7 @@ import a.a.a.wq;
 import a.a.a.yB;
 import mod.hey.studios.project.ProjectSettingsDialog;
 import mod.hey.studios.project.backup.BackupRestoreManager;
+import mod.hey.studios.project.github.GitHubUploadManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.main.fragments.projects.ProjectsFragment;
@@ -232,6 +233,12 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         new BackupRestoreManager(activity).backup(scId, appName);
     }
 
+    private void uploadToGitHub(HashMap<String, Object> project) {
+        String scId = yB.c(project, "sc_id");
+        String appName = yB.c(project, "my_ws_name");
+        new GitHubUploadManager(activity).upload(scId, appName);
+    }
+
     private void toExportProjectActivity(HashMap<String, Object> project) {
         Intent intent = new Intent(activity, ExportProjectActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -251,6 +258,11 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
 
         binding.projectBackup.setOnClickListener(v -> {
             backupProject(projectMap);
+            projectOptionsBSD.dismiss();
+        });
+
+        binding.githubUpload.setOnClickListener(v -> {
+            uploadToGitHub(projectMap);
             projectOptionsBSD.dismiss();
         });
 

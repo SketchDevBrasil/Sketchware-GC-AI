@@ -14,6 +14,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Pair;
+
+import com.besome.sketch.beans.BlockBean;
+import com.besome.sketch.beans.ComponentBean;
+import com.besome.sketch.beans.EventBean;
 import com.besome.sketch.beans.ProjectFileBean;
 import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.editor.manage.view.AddViewActivity;
@@ -237,6 +242,116 @@ public class Fw extends qA {
         super.onSaveInstanceState(newState);
     }
 
+    private void showRenameActivityDialog(int position) {
+        ProjectFileBean bean = activitiesFiles.get(position);
+        android.widget.EditText input = new android.widget.EditText(requireContext());
+        input.setText(bean.fileName);
+        input.setSelectAllOnFocus(true);
+        int dp = (int) (16 * getResources().getDisplayMetrics().density);
+        android.widget.LinearLayout container = new android.widget.LinearLayout(requireContext());
+        container.setPadding(dp * 2, dp, dp * 2, 0);
+        container.addView(input, new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Rename Activity")
+                .setMessage("Enter a new base name (e.g. \"chat\" → ChatActivity)")
+                .setView(container)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Rename", (dialog, which) -> {
+                    String newName = input.getText().toString().trim().toLowerCase();
+                    if (newName.isEmpty()) {
+                        bB.a(requireContext(), "Name cannot be empty", bB.TOAST_WARNING).show();
+                        return;
+                    }
+                    if (!newName.matches("[a-z][a-z0-9_]*")) {
+                        bB.a(requireContext(), "Use lowercase letters, numbers and underscore only", bB.TOAST_WARNING).show();
+                        return;
+                    }
+                    if (newName.equals(bean.fileName)) return;
+                    for (ProjectFileBean other : activitiesFiles) {
+                        if (other != bean && other.fileName.equals(newName)) {
+                            bB.a(requireContext(), "Activity name already in use", bB.TOAST_WARNING).show();
+                            return;
+                        }
+                    }
+                    performRenameActivity(position, newName);
+                })
+                .show();
+    }
+
+    private void performRenameActivity(int position, String newFileName) {
+        ProjectFileBean bean = activitiesFiles.get(position);
+        String oldJavaName = bean.getJavaName();   // e.g. "OldActivity.java"
+        String oldXmlName  = bean.getXmlName();    // e.g. "old.xml"
+        String newJavaName = ProjectFileBean.getJavaName(newFileName); // e.g. "NewActivity.java"
+        String newXmlName  = newFileName + ".xml";
+
+        eC projectData = jC.a(sc_id);
+
+        // 1. Copy layout views (direct HashMap access)
+        ArrayList<ViewBean> views = projectData.c.get(oldXmlName);
+        if (views != null) {
+            projectData.c.put(newXmlName, new ArrayList<>(views));
+            projectData.c.remove(oldXmlName);
+        }
+
+        // 2. Copy initializeLogic (onCreate) blocks — hardcoded key
+        ArrayList<BlockBean> initBlocks = projectData.a(oldJavaName, "onCreate_initializeLogic");
+        if (initBlocks != null && !initBlocks.isEmpty()) {
+            projectData.a(newJavaName, "onCreate_initializeLogic", new ArrayList<>(initBlocks));
+        }
+
+        // 3. Copy all registered events (view/component/activity) + their blocks
+        for (EventBean event : projectData.g(oldJavaName)) {
+            String key = event.targetId + "_" + event.eventName;
+            ArrayList<BlockBean> blocks = projectData.a(oldJavaName, key);
+            if (blocks != null && !blocks.isEmpty()) {
+                projectData.a(newJavaName, key, new ArrayList<>(blocks));
+            }
+            try {
+                projectData.a(newJavaName, event.eventType, event.targetType, event.targetId, event.eventName);
+            } catch (Exception ignored) {
+                // event registration failed; blocks still copied
+            }
+        }
+
+        // 4. Copy MoreBlocks (spec registration + logic blocks)
+        for (Pair<String, String> mb : projectData.i(oldJavaName)) {
+            ArrayList<BlockBean> blocks = projectData.a(oldJavaName, mb.first + "_moreBlock");
+            projectData.a(newJavaName, mb.first, mb.second); // register name+spec
+            projectData.a(newJavaName, mb.first + "_moreBlock",
+                    blocks != null ? new ArrayList<>(blocks) : new ArrayList<>());
+        }
+
+        // 5. Copy components
+        for (ComponentBean component : projectData.e(oldJavaName)) {
+            projectData.a(newJavaName, component);
+        }
+
+        // 6. Copy drawer views (if activity has drawer)
+        if (bean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
+            String oldDrawerXml  = bean.getDrawerXmlName();
+            String newDrawerName = ProjectFileBean.getDrawerName(newFileName);
+            String newDrawerXml  = newDrawerName + ".xml";
+            ArrayList<ViewBean> drawerViews = projectData.c.get(oldDrawerXml);
+            if (drawerViews != null) {
+                projectData.c.put(newDrawerXml, new ArrayList<>(drawerViews));
+                projectData.c.remove(oldDrawerXml);
+            }
+            ((ManageViewActivity) getActivity()).c(ProjectFileBean.getDrawerName(bean.fileName));
+            ((ManageViewActivity) getActivity()).b(newDrawerName);
+        }
+
+        // 7. Update activity bean and save
+        bean.fileName = newFileName;
+        projectData.k();
+
+        projectFilesAdapter.notifyItemChanged(position);
+        bB.a(requireContext(), "Renamed to " + newJavaName, bB.TOAST_NORMAL).show();
+    }
+
     public class ProjectFilesAdapter extends RecyclerView.Adapter<ProjectFilesAdapter.ViewHolder> {
         public int layoutPosition = -1;
 
@@ -318,16 +433,27 @@ public class Fw extends qA {
                 });
 
                 binding.viewItem.setOnLongClickListener(view -> {
-                    if (getLayoutPosition() == 0) {
-                        Toast.makeText(getContext(), "Main activity cannot be deleted", Toast.LENGTH_SHORT).show();
+                    layoutPosition = getLayoutPosition();
+                    if (layoutPosition == 0) {
+                        Toast.makeText(getContext(), "Main activity cannot be deleted or renamed", Toast.LENGTH_SHORT).show();
                         return true;
                     }
-                    ((ManageViewActivity) getActivity()).a(true);
-                    layoutPosition = getLayoutPosition();
-                    ProjectFileBean projectFileBean = activitiesFiles.get(layoutPosition);
-                    projectFileBean.isSelected = !projectFileBean.isSelected;
-                    binding.chkSelect.setChecked(projectFileBean.isSelected);
-                    notifyItemChanged(layoutPosition);
+                    android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), view);
+                    popup.getMenu().add(0, 0, 0, "Rename");
+                    popup.getMenu().add(0, 1, 1, "Delete");
+                    popup.setOnMenuItemClickListener(item -> {
+                        if (item.getItemId() == 0) {
+                            showRenameActivityDialog(layoutPosition);
+                        } else {
+                            ((ManageViewActivity) getActivity()).a(true);
+                            ProjectFileBean projectFileBean = activitiesFiles.get(layoutPosition);
+                            projectFileBean.isSelected = !projectFileBean.isSelected;
+                            binding.chkSelect.setChecked(projectFileBean.isSelected);
+                            notifyItemChanged(layoutPosition);
+                        }
+                        return true;
+                    });
+                    popup.show();
                     return true;
                 });
 

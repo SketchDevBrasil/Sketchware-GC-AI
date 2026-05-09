@@ -44,6 +44,7 @@ import a.a.a.lC;
 import dev.chrisbanes.insetter.Insetter;
 import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupRestoreManager;
+import mod.hey.studios.project.github.GitHubImportManager;
 import pro.sketchware.R;
 import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
@@ -125,6 +126,10 @@ public class ProjectsFragment extends DA {
         new BackupRestoreManager(getActivity(), this).restore();
     }
 
+    public void importFromGitHub() {
+        new GitHubImportManager(requireActivity(), this).showImportDialog();
+    }
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         binding = MyprojectsBinding.inflate(inflater, parent, false);
@@ -191,6 +196,10 @@ public class ProjectsFragment extends DA {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.importFromGitHub) {
+                    importFromGitHub();
+                    return true;
+                }
                 return false;
             }
         };

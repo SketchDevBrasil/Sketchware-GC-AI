@@ -88,8 +88,28 @@ public class Network {
         request("POST", url, headers, null, formData, handler);
     }
 
+    public void put(String url, Map<String, String> headers, String body, ResponseHandler handler) {
+        request("PUT", url, headers, body, null, handler);
+    }
+
     public void delete(String url, Map<String, String> headers, String body, ResponseHandler handler) {
         request("DELETE", url, headers, body, null, handler);
+    }
+
+    /**
+     * Synchronous binary download. Must be called from a background thread.
+     */
+    public byte[] downloadBytes(String url, Map<String, String> headers) throws IOException {
+        Request.Builder requestBuilder = new Request.Builder().url(url);
+        if (headers != null) {
+            headers.forEach(requestBuilder::addHeader);
+        }
+        try (Response response = client.newCall(requestBuilder.build()).execute()) {
+            if (response.body() != null) {
+                return response.body().bytes();
+            }
+            return null;
+        }
     }
 
     @FunctionalInterface

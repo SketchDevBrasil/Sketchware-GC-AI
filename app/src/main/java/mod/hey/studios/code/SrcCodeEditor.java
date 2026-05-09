@@ -571,8 +571,16 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             agente.directEdit(binding.editor.getText().toString(), instruction, "code", new mod.sdb.agente.SdbAgenteSk.ResponseListener() {
                 @Override
                 public void onResponse(String response) {
+                    // Strip markdown code fences if present
+                    String code = response.trim();
+                    if (code.startsWith("```")) {
+                        int firstNewline = code.indexOf('\n');
+                        if (firstNewline >= 0) code = code.substring(firstNewline + 1).trim();
+                        if (code.endsWith("```")) code = code.substring(0, code.lastIndexOf("```")).trim();
+                    }
+                    final String finalCode = code;
                     runOnUiThread(() -> {
-                        binding.editor.setText(response);
+                        binding.editor.setText(finalCode);
                         SketchwareUtil.toast("Código atualizado pela IA");
                     });
                 }

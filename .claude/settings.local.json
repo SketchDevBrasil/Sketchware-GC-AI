@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew clean:*)"
+      "Bash(./gradlew clean:*)",
+      "Bash(grep -r 'class DB ' c:/Users/LAPTOP/Documents/GitHub/Sketchware-Pro-7.0.0/Sketchware-Pro-7.0.0/app/src/main/java --include=*.java -l)",
+      "Bash(grep -r \"D01_\\\\|D02_\\\\|D03_\\\\|D04_\" c:/Users/LAPTOP/Documents/GitHub/Sketchware-Pro-7.0.0/Sketchware-Pro-7.0.0/app/src/main/java --include=*.java -l)",
+      "Bash(find c:/Users/LAPTOP/Documents/GitHub/Sketchware-Pro-7.0.0/Sketchware-Pro-7.0.0/ -name *.aar -o -name *.jar)"
     ]
   }
 }
