@@ -43,6 +43,13 @@ public class GitHubUploadManager {
     public void showLoginDialog(Runnable onSuccess) {
         DialogGithubLoginBinding binding = DialogGithubLoginBinding.inflate(LayoutInflater.from(activity));
 
+        // Show current login status
+        if (GitHubTokenManager.isLoggedIn(activity)) {
+            String currentUser = GitHubTokenManager.getUsername(activity);
+            binding.tvStatus.setVisibility(android.view.View.VISIBLE);
+            binding.tvStatus.setText("Currently logged in as: " + currentUser + "\nEnter a new token to change account.");
+        }
+
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(activity);
         dialog.setTitle("GitHub Login");
         dialog.setIcon(R.drawable.ic_mtrl_github);
@@ -200,8 +207,8 @@ public class GitHubUploadManager {
                     Network.SyncResponse createResponse = client.createRepoSync(repoName, description, isPrivate);
 
                     if (!createResponse.isSuccessful()) {
-                        String errorMsg = parseGitHubError(createResponse.body);
-                        return "Failed to create repository (HTTP " + createResponse.code + "): " + errorMsg;
+                        String errorMsg = parseGitHubError(createResponse.code, createResponse.body);
+                        return "Failed to create repository: " + errorMsg;
                     }
 
                     // Wait for GitHub to initialize the repo
@@ -232,8 +239,8 @@ public class GitHubUploadManager {
                         username, repoName, fileName, base64Content, sha, commitMessage);
 
                 if (!uploadResponse.isSuccessful()) {
-                    String errorMsg = parseGitHubError(uploadResponse.body);
-                    return "Upload failed (HTTP " + uploadResponse.code + "): " + errorMsg;
+                    String errorMsg = parseGitHubError(uploadResponse.code, uploadResponse.body);
+                    return "Upload failed: " + errorMsg;
                 }
 
                 // Clean up temp backup
@@ -254,8 +261,17 @@ public class GitHubUploadManager {
             }
         }
 
-        private String parseGitHubError(String responseBody) {
-            if (responseBody == null) return "No response";
+        private String parseGitHubError(int code, String responseBody) {
+            if (code == 401) {
+                return "Token expired or invalid. Go to GitHub menu > Login to update your token.";
+            }
+            if (code == 403) {
+                return "Token doesn't have permission. Generate a new token with 'repo' scope enabled.\nGitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)";
+            }
+            if (code == 422) {
+                return "Repository name already exists or is invalid.";
+            }
+            if (responseBody == null) return "No response from server";
             try {
                 Map<String, Object> error = new Gson().fromJson(responseBody, Map.class);
                 if (error.containsKey("message")) {

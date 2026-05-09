@@ -11,9 +11,24 @@
         tools:ignore="AlwaysShowAction" />
 
     <item
-        android:id="@+id/importFromGitHub"
+        android:id="@+id/github_menu"
         android:icon="@drawable/ic_mtrl_github"
-        android:title="Import from GitHub"
-        app:showAsAction="never" />
+        android:title="GitHub"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/github_login"
+                android:icon="@drawable/ic_mtrl_github"
+                android:title="Login / Change Token" />
+            <item
+                android:id="@+id/github_import"
+                android:icon="@drawable/ic_mtrl_download"
+                android:title="Import project from URL" />
+            <item
+                android:id="@+id/github_logout"
+                android:icon="@drawable/ic_mtrl_exit"
+                android:title="Logout" />
+        </menu>
+    </item>
 
 </menu>

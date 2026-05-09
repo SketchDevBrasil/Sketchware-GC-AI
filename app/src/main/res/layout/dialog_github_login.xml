@@ -10,15 +10,40 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Enter your GitHub Personal Access Token (PAT).\nGenerate one at GitHub > Settings > Developer settings > Personal access tokens."
-        android:textAppearance="?attr/textAppearanceBodyMedium" />
+        android:layout_marginBottom="8dp"
+        android:text="Enter your GitHub Personal Access Token (PAT)."
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="How to generate:"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="1. Go to github.com > Settings > Developer settings\n2. Personal access tokens > Tokens (classic)\n3. Generate new token (classic)\n4. Select scopes: repo (Full control)\n5. Generate and copy the token"
+        android:textAppearance="?attr/textAppearanceBodySmall" />
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorPrimary" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/til_token"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="GitHub Token"
+        android:hint="ghp_xxxxxxxxxxxxxxxxxxxx"
         app:endIconMode="password_toggle"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 

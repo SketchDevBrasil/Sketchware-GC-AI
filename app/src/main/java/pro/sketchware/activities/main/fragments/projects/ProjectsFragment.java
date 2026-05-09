@@ -45,6 +45,8 @@ import dev.chrisbanes.insetter.Insetter;
 import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupRestoreManager;
 import mod.hey.studios.project.github.GitHubImportManager;
+import mod.hey.studios.project.github.GitHubTokenManager;
+import mod.hey.studios.project.github.GitHubUploadManager;
 import pro.sketchware.R;
 import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
@@ -130,6 +132,27 @@ public class ProjectsFragment extends DA {
         new GitHubImportManager(requireActivity(), this).showImportDialog();
     }
 
+    private void showGitHubLogin() {
+        new GitHubUploadManager(requireActivity()).showLoginDialog(null);
+    }
+
+    private void logoutGitHub() {
+        if (!GitHubTokenManager.isLoggedIn(requireContext())) {
+            pro.sketchware.utility.SketchwareUtil.toast("Not logged in to GitHub");
+            return;
+        }
+        String username = GitHubTokenManager.getUsername(requireContext());
+        new MaterialAlertDialogBuilder(requireActivity())
+                .setTitle("Logout from GitHub")
+                .setMessage("Logged in as: " + username + "\n\nAre you sure you want to logout?")
+                .setPositiveButton("Logout", (d, w) -> {
+                    GitHubTokenManager.clearToken(requireContext());
+                    pro.sketchware.utility.SketchwareUtil.toast("Logged out from GitHub");
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         binding = MyprojectsBinding.inflate(inflater, parent, false);
@@ -196,8 +219,15 @@ public class ProjectsFragment extends DA {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (menuItem.getItemId() == R.id.importFromGitHub) {
+                int id = menuItem.getItemId();
+                if (id == R.id.github_import) {
                     importFromGitHub();
+                    return true;
+                } else if (id == R.id.github_login) {
+                    showGitHubLogin();
+                    return true;
+                } else if (id == R.id.github_logout) {
+                    logoutGitHub();
                     return true;
                 }
                 return false;
