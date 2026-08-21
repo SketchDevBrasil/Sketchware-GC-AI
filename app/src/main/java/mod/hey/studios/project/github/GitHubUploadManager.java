@@ -2,6 +2,7 @@ package mod.hey.studios.project.github;
 
 import android.app.Activity;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.widget.TextView;
@@ -13,10 +14,15 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.project.backup.BackupFactory;
 import pro.sketchware.R;
 import pro.sketchware.databinding.DialogGithubLoginBinding;
@@ -188,16 +194,7 @@ public class GitHubUploadManager {
                     return "Failed to create backup: " + factory.getError();
                 }
 
-                // Step 2: Read and encode file
-                publishProgress("Encoding file...");
-                byte[] fileBytes;
-                try (RandomAccessFile raf = new RandomAccessFile(backupFile, "r")) {
-                    fileBytes = new byte[(int) raf.length()];
-                    raf.readFully(fileBytes);
-                }
-                String base64Content = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
-
-                // Step 3: Check if repo exists
+                // Step 2: Check if repo exists
                 publishProgress("Checking repository...");
                 Network.SyncResponse repoCheck = client.getRepoSync(username, repoName);
 
@@ -213,34 +210,111 @@ public class GitHubUploadManager {
 
                     // Wait for GitHub to initialize the repo
                     Thread.sleep(3000);
-                }
-
-                // Step 4: Check if file already exists (to get SHA for update)
-                publishProgress("Preparing upload...");
-                String fileName = repoName + ".swb";
-                String sha = null;
-
-                Network.SyncResponse fileCheck = client.getFileInfoSync(username, repoName, fileName);
-                if (fileCheck.isSuccessful() && fileCheck.body != null) {
-                    try {
-                        Map<String, Object> fileInfo = new Gson().fromJson(fileCheck.body, Map.class);
-                        sha = (String) fileInfo.get("sha");
-                    } catch (Exception ignored) {
+                    repoCheck = client.getRepoSync(username, repoName);
+                    if (!repoCheck.isSuccessful()) {
+                        String errorMsg = parseGitHubError(repoCheck.code, repoCheck.body);
+                        return "Failed to verify repository: " + errorMsg;
                     }
                 }
 
-                // Step 5: Upload file
-                publishProgress("Uploading " + fileName + " to GitHub...");
-                String commitMessage = sha != null
-                        ? "Update " + appName + " backup"
-                        : "Add " + appName + " backup";
+                // Step 3: Prepare a real GitHub commit, same flow used in Geneses Code
+                Map<String, Object> repo = new Gson().fromJson(repoCheck.body, Map.class);
+                String defaultBranch = repo != null && repo.get("default_branch") instanceof String
+                        ? (String) repo.get("default_branch")
+                        : "main";
 
-                Network.SyncResponse uploadResponse = client.uploadFileSync(
-                        username, repoName, fileName, base64Content, sha, commitMessage);
+                String latestCommitSha = null;
+                String baseTreeSha = null;
+                boolean emptyRepo = false;
 
-                if (!uploadResponse.isSuccessful()) {
-                    String errorMsg = parseGitHubError(uploadResponse.code, uploadResponse.body);
-                    return "Upload failed: " + errorMsg;
+                publishProgress("Checking branch " + defaultBranch + "...");
+                Network.SyncResponse refResponse = client.getRefSync(username, repoName, defaultBranch);
+                if (refResponse.isSuccessful() && refResponse.body != null) {
+                    try {
+                        Map<String, Object> ref = new Gson().fromJson(refResponse.body, Map.class);
+                        Map<String, Object> object = (Map<String, Object>) ref.get("object");
+                        latestCommitSha = object != null ? (String) object.get("sha") : null;
+                    } catch (Exception ignored) {}
+                } else {
+                    emptyRepo = true;
+                }
+
+                if (latestCommitSha != null) {
+                    Network.SyncResponse commitResponse = client.getCommitSync(username, repoName, latestCommitSha);
+                    if (!commitResponse.isSuccessful()) {
+                        String errorMsg = parseGitHubError(commitResponse.code, commitResponse.body);
+                        return "Failed to read latest commit: " + errorMsg;
+                    }
+                    Map<String, Object> commit = new Gson().fromJson(commitResponse.body, Map.class);
+                    Map<String, Object> tree = (Map<String, Object>) commit.get("tree");
+                    baseTreeSha = tree != null ? (String) tree.get("sha") : null;
+                }
+
+                File projectDir = new File(Environment.getExternalStorageDirectory(), ".sketchware/data/" + scId);
+                List<UploadEntry> entries = new ArrayList<>();
+                if (projectDir.isDirectory()) {
+                    collectProjectFiles(projectDir, projectDir, entries);
+                }
+                entries.add(new UploadEntry(backupFile, repoName + "." + BackupFactory.EXTENSION));
+
+                if (entries.isEmpty()) {
+                    return "No project files found to upload";
+                }
+
+                List<Map<String, Object>> treeItems = new ArrayList<>();
+                for (int i = 0; i < entries.size(); i++) {
+                    UploadEntry entry = entries.get(i);
+                    publishProgress("Uploading file " + (i + 1) + "/" + entries.size() + ": " + entry.remotePath);
+
+                    Network.SyncResponse blobResponse = client.createBlobSync(
+                            username,
+                            repoName,
+                            Base64.encodeToString(readFileBytes(entry.file), Base64.NO_WRAP)
+                    );
+                    if (!blobResponse.isSuccessful()) {
+                        String errorMsg = parseGitHubError(blobResponse.code, blobResponse.body);
+                        return "Failed to upload " + entry.remotePath + ": " + errorMsg;
+                    }
+
+                    Map<String, Object> blob = new Gson().fromJson(blobResponse.body, Map.class);
+                    Map<String, Object> treeItem = new HashMap<>();
+                    treeItem.put("path", entry.remotePath);
+                    treeItem.put("mode", "100644");
+                    treeItem.put("type", "blob");
+                    treeItem.put("sha", blob.get("sha"));
+                    treeItems.add(treeItem);
+                }
+
+                publishProgress("Creating file tree...");
+                Network.SyncResponse treeResponse = client.createTreeSync(username, repoName, baseTreeSha, treeItems);
+                if (!treeResponse.isSuccessful()) {
+                    String errorMsg = parseGitHubError(treeResponse.code, treeResponse.body);
+                    return "Failed to create file tree: " + errorMsg;
+                }
+                Map<String, Object> newTree = new Gson().fromJson(treeResponse.body, Map.class);
+
+                publishProgress("Creating commit...");
+                String commitMessage = "Save Sketchware project: " + appName;
+                Network.SyncResponse commitResponse = client.createCommitSync(
+                        username,
+                        repoName,
+                        commitMessage,
+                        (String) newTree.get("sha"),
+                        latestCommitSha
+                );
+                if (!commitResponse.isSuccessful()) {
+                    String errorMsg = parseGitHubError(commitResponse.code, commitResponse.body);
+                    return "Failed to create commit: " + errorMsg;
+                }
+                Map<String, Object> newCommit = new Gson().fromJson(commitResponse.body, Map.class);
+
+                publishProgress((emptyRepo ? "Creating" : "Updating") + " branch " + defaultBranch + "...");
+                Network.SyncResponse refUpdate = emptyRepo
+                        ? client.createRefSync(username, repoName, defaultBranch, (String) newCommit.get("sha"))
+                        : client.updateRefSync(username, repoName, defaultBranch, (String) newCommit.get("sha"));
+                if (!refUpdate.isSuccessful()) {
+                    String errorMsg = parseGitHubError(refUpdate.code, refUpdate.body);
+                    return "Failed to update branch: " + errorMsg;
                 }
 
                 // Clean up temp backup
@@ -253,8 +327,12 @@ public class GitHubUploadManager {
                     }
                 }
 
+                // Save GitHub URL to project settings
+                String githubUrl = "https://github.com/" + username + "/" + repoName;
+                new ProjectSettings(scId).setValue(ProjectSettings.SETTING_GITHUB_URL, githubUrl);
+
                 success = true;
-                return "https://github.com/" + username + "/" + repoName;
+                return githubUrl;
 
             } catch (Exception e) {
                 return "Error: " + e.getMessage();
@@ -280,6 +358,53 @@ public class GitHubUploadManager {
             } catch (Exception ignored) {
             }
             return responseBody.length() > 200 ? responseBody.substring(0, 200) : responseBody;
+        }
+
+        private static void collectProjectFiles(File root, File dir, List<UploadEntry> entries) {
+            File[] files = dir.listFiles();
+            if (files == null) return;
+            for (File file : files) {
+                String name = file.getName();
+                if (name.equals(".git") || name.equals("build") || name.equals("bin") || name.equals("tmp")) {
+                    continue;
+                }
+                if (file.isDirectory()) {
+                    collectProjectFiles(root, file, entries);
+                } else if (file.isFile()) {
+                    String relativePath = root.toURI().relativize(file.toURI()).getPath();
+                    if (!relativePath.isEmpty()) {
+                        entries.add(new UploadEntry(file, relativePath));
+                    }
+                }
+            }
+        }
+
+        private static byte[] readFileBytes(File file) throws Exception {
+            if (file.length() > Integer.MAX_VALUE) {
+                throw new Exception("File too large: " + file.getName());
+            }
+            byte[] bytes = new byte[(int) file.length()];
+            try (FileInputStream in = new FileInputStream(file)) {
+                int offset = 0;
+                int read;
+                while (offset < bytes.length && (read = in.read(bytes, offset, bytes.length - offset)) != -1) {
+                    offset += read;
+                }
+                if (offset != bytes.length) {
+                    throw new Exception("Could not read full file: " + file.getName());
+                }
+            }
+            return bytes;
+        }
+
+        private static class UploadEntry {
+            final File file;
+            final String remotePath;
+
+            UploadEntry(File file, String remotePath) {
+                this.file = file;
+                this.remotePath = remotePath.replace('\\', '/');
+            }
         }
 
         @Override

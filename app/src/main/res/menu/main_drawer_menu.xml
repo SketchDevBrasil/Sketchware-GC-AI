@@ -11,6 +11,11 @@
         android:title="Changelog" />
 
     <item
+        android:id="@+id/official_gc_ai"
+        android:icon="@drawable/ic_gc_ai_rounded"
+        android:title="Official Agente GC-AI" />
+
+    <item
         android:id="@+id/program_info"
         android:icon="@drawable/ic_sketchware_24"
         android:title="App information" />

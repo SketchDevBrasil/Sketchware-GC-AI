@@ -66,3 +66,14 @@ fastlane/readme.md
 .androidide/
 /actions-runner
 release/
+# Build logs and scratch output
+build_log.txt
+build_output.txt
+final_build_output.txt
+hs_err_pid*.log
+
+# Sketchware project backups accidentally left in the repo root
+/*.swb
+
+# Local editor/agent configuration
+.claude/settings.local.json

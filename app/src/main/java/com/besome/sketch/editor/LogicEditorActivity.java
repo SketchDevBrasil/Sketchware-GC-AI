@@ -2062,44 +2062,15 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 + "2. Adicionar MOREBLOCK nesta tela: { \"op\": \"add_moreblock\", \"data\": { \"name\": \"meuMbr\", \"spec\": \"meuMbr %s.b\", \"code\": \"java_code;\" } }\n"
                 + "3. Adicionar IMPORT: { \"op\": \"add_import\", \"data\": { \"code\": \"import ...;\" } }";
 
-        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstanceWithLogic(
+        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
                 scId, 
-                M.getJavaName(), 
-                M.getXmlName(),
-                contextInfo,
-                (String instruction) -> {
-                    try {
-                        String trimmed = instruction.trim();
-                        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-                            org.json.JSONObject json = new org.json.JSONObject(instruction);
-                            
-                            // Handle both single op and operations array
-                            if (json.has("operations")) {
-                                org.json.JSONArray ops = json.getJSONArray("operations");
-                                for (int i = 0; i < ops.length(); i++) {
-                                    processSingleLogicOp(ops.getJSONObject(i));
-                                }
-                            } else if (json.has("op")) {
-                                processSingleLogicOp(json);
-                            }
-                        } else if (!instruction.trim().isEmpty()) {
-                            // Raw code injection support
-                            mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), id + "_" + eventName, instruction);
-                        }
-                    } catch (Exception e) {
-                        // If JSON parsing fails but it looks like JSON, show error
-                        // Otherwise it might just be raw code that failed some other check
-                        if (instruction.trim().startsWith("{") || instruction.trim().startsWith("[")) {
-                             pro.sketchware.utility.SketchwareUtil.toast("Erro no processamento JSON: " + e.getMessage());
-                        } else if (!instruction.trim().isEmpty()) {
-                             mod.sdb.agente.SdbEditEngine.addEventToActivityAndInjectCode(scId, M.getJavaName(), id + "_" + eventName, instruction);
-                        }
-                    }
-                }
+                null,
+                null,
+                null
         );
         sheet.setOnAgenteEditListener(() -> {
             // Toast only - do NOT restart activity, it destroys unsaved blocks
-            pro.sketchware.utility.SketchwareUtil.toast("Edição aplicada pelo SDBCodFlow!");
+            pro.sketchware.utility.SketchwareUtil.toast("Edição aplicada pelo GC-AI!");
         });
         sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
     }

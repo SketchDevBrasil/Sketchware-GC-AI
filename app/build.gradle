@@ -13,8 +13,8 @@ android {
         //noinspection ExpiredTargetSdkVersion since we don't target getting Sketchware Pro on Google Play.
         targetSdk = 28
         minSdk = 26
-        versionCode = 150
-        versionName = "v8.7.7"
+        versionCode = 151
+        versionName = "v9.8.8"
 
         buildConfigField("String", "GIT_HASH", "\"${gitCommitHash}\"")
     }
@@ -24,6 +24,12 @@ android {
             minifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.debug
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = "sketchware_gc_ai.apk"
         }
     }
 
@@ -49,10 +55,15 @@ android {
 
     signingConfigs {
         debug {
-            storeFile = file("../testkey.keystore")
-            storePassword = "testkey"
-            keyAlias = "testkey"
-            keyPassword = "testkey"
+            // testkey.keystore is gitignored, so a fresh clone doesn't have it. Fall back to
+            // the SDK's auto-generated debug keystore instead of failing the build.
+            def testkey = file("../testkey.keystore")
+            if (testkey.exists()) {
+                storeFile = testkey
+                storePassword = "testkey"
+                keyAlias = "testkey"
+                keyPassword = "testkey"
+            }
         }
     }
 

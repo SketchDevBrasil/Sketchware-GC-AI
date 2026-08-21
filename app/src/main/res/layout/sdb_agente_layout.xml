@@ -3,168 +3,185 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorPrimary">
+    android:background="#101126">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Header / Toolbar Replacement -->
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:paddingHorizontal="16dp">
+            android:layout_height="58dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/btn_back"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_centerVertical="true"
-                style="@style/Widget.Material3.Button.IconButton"
-                app:icon="@drawable/ic_mtrl_close"
-                app:iconTint="?attr/colorOnPrimary" />
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Fechar"
+                android:padding="9dp"
+                android:src="@drawable/ic_mtrl_close"
+                app:tint="#B8B8CE" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_info"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_toEndOf="@id/btn_back"
-                android:layout_centerVertical="true"
-                style="@style/Widget.Material3.Button.IconButton"
-                app:icon="@drawable/ic_mtrl_info"
-                app:iconSize="20dp"
-                app:iconTint="?attr/colorOnPrimary" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_lang"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_toEndOf="@id/btn_info"
-                android:layout_centerVertical="true"
-                android:text="PT"
-                android:textSize="11sp"
-                android:textColor="?attr/colorOnPrimary"
-                android:paddingHorizontal="6dp"
-                style="@style/Widget.Material3.Button.TextButton" />
+            <com.google.android.material.imageview.ShapeableImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:contentDescription="GC-AI"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_gc_ai_rounded"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium" />
 
             <TextView
                 android:id="@+id/tv_title"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:layout_toEndOf="@id/btn_lang"
-                android:layout_toStartOf="@id/btn_history"
+                android:layout_marginStart="9dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="GC-AI"
+                android:textColor="#EEEEFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_lang"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:gravity="center"
-                android:text="SDBCodFlow"
-                android:textColor="?attr/colorOnPrimary"
-                android:textStyle="bold"
-                android:textSize="18sp"
-                android:singleLine="true"
-                android:ellipsize="marquee" />
+                android:text="PT"
+                android:textColor="#AFAFC8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
+                android:id="@+id/btn_info"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Informacoes"
+                android:padding="8dp"
+                android:src="@drawable/ic_mtrl_info"
+                app:tint="#AFAFC8" />
+
+            <ImageButton
                 android:id="@+id/btn_new_chat"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                style="@style/Widget.Material3.Button.IconButton"
-                app:icon="@drawable/ic_mtrl_add"
-                app:iconTint="?attr/colorOnPrimary" />
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Nova conversa"
+                android:padding="8dp"
+                android:src="@drawable/ic_mtrl_add"
+                app:tint="#AFAFC8" />
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/btn_history"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_toStartOf="@id/btn_new_chat"
-                android:layout_centerVertical="true"
-                style="@style/Widget.Material3.Button.IconButton"
-                app:icon="@drawable/ic_mtrl_settings"
-                app:iconTint="?attr/colorOnPrimary" />
-        </RelativeLayout>
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Historico"
+                android:padding="8dp"
+                android:src="@drawable/ic_mtrl_history"
+                app:tint="#AFAFC8" />
 
-        <!-- Main Content Area (Rounded Container) -->
+            <ImageButton
+                android:id="@+id/btn_config"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Configuracoes"
+                android:padding="8dp"
+                android:src="@drawable/ic_mtrl_settings"
+                app:tint="#AFAFC8" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/shape_top_rounded_32dp"
-            android:orientation="vertical"
-            android:elevation="8dp">
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_gc_chat_panel"
+            android:orientation="vertical">
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progress_indicator"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:indeterminate="true"
-                android:visibility="gone"
-                app:trackColor="@android:color/transparent" />
-
-            <!-- Unity Ads Banner Container -->
-            <LinearLayout
-                android:id="@+id/unity_ads_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:visibility="gone" />
-
-            <!-- BottomSheet Handle (Aba) -->
             <View
                 android:layout_width="40dp"
                 android:layout_height="4dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
-                android:background="#44888888" />
+                android:background="#45455E" />
 
-            <!-- Intent Selection Chips -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:paddingHorizontal="16dp"
-                android:layout_marginBottom="8dp">
+                android:clipToPadding="false"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:scrollbars="none">
+
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chip_group_intent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:singleSelection="true"
-                    app:selectionRequired="true">
+                    app:chipSpacingHorizontal="8dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
                     <com.google.android.material.chip.Chip
                         android:id="@+id/intent_auto"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🤖 Auto"
-                        android:checked="true" />
+                        style="@style/Widget.GcAi.ModeChip"
+                        android:checked="true"
+                        android:text="Aprovar" />
+
                     <com.google.android.material.chip.Chip
                         android:id="@+id/intent_inject"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="💉 Injetar Código" />
+                        style="@style/Widget.GcAi.ModeChip"
+                        android:text="Agente" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/intent_plan"
+                        style="@style/Widget.GcAi.ModeChip"
+                        android:text="Plano" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/intent_free"
+                        style="@style/Widget.GcAi.ModeChip"
+                        android:text="Livre" />
+
                     <com.google.android.material.chip.Chip
                         android:id="@+id/intent_moreblock"
-                        style="@style/Widget.Material3.Chip.Filter"
+                        style="@style/Widget.GcAi.ModeChip"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="📦 MoreBlock" />
+                        android:layout_height="36dp"
+                        android:text="MoreBlock" />
+
                     <com.google.android.material.chip.Chip
                         android:id="@+id/intent_design"
-                        style="@style/Widget.Material3.Chip.Filter"
+                        style="@style/Widget.GcAi.ModeChip"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎨 Design/Ícones" />
+                        android:layout_height="36dp"
+                        android:text="Design" />
+
                     <com.google.android.material.chip.Chip
                         android:id="@+id/intent_support"
-                        style="@style/Widget.Material3.Chip.Filter"
+                        style="@style/Widget.GcAi.ModeChip"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:chipIcon="@drawable/ic_mtrl_star"
-                        android:text="❤️ Apoiar" />
+                        android:layout_height="36dp"
+                        android:text="Apoiar" />
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/unity_ads_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/chat_recycler"
@@ -174,107 +191,147 @@
                 android:clipToPadding="false"
                 android:padding="8dp" />
 
-            <!-- Input Area -->
+            <LinearLayout
+                android:id="@+id/layout_agent_working"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="4dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/img_agent_working"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:contentDescription="GC-AI processando"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/agent_working" />
+
+                <TextView
+                    android:id="@+id/tv_agent_working"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="GC-AI analisando o projeto..."
+                    android:textColor="#9999C8"
+                    android:textSize="13sp"
+                    android:textStyle="italic" />
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="#15172C"
                 android:orientation="vertical"
-                android:padding="12dp"
-                android:background="?attr/colorSurface">
+                android:padding="10dp">
 
                 <FrameLayout
                     android:id="@+id/layout_image_preview"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginBottom="6dp"
                     android:visibility="gone">
 
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/img_preview"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
                         android:scaleType="centerCrop"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_remove_image"
+                        style="@style/Widget.Material3.Button.IconButton.Filled"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="top|end"
                         android:padding="0dp"
-                        style="@style/Widget.Material3.Button.IconButton.Filled"
                         app:icon="@drawable/ic_mtrl_close"
-                        app:iconSize="16dp" />
+                        app:iconSize="15dp" />
                 </FrameLayout>
 
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_auto_apply"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Aplicar alteracoes automaticamente"
+                    android:textColor="#CCCCDD"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="4dp">
-                    
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cb_auto_apply"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Auto-Aplicar Mudanças"
-                        android:checked="true"
-                        android:textSize="12sp"
-                        android:buttonTint="?attr/colorPrimary" />
-                </LinearLayout>
+                    android:orientation="horizontal">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="bottom">
-
-                    <com.google.android.material.button.MaterialButton
+                    <ImageButton
                         android:id="@+id/btn_attach"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        app:icon="@drawable/ic_mtrl_add" />
+                        android:layout_width="36dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Anexar imagem"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_mtrl_add"
+                        app:tint="#AFAFC8" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <ImageButton
                         android:id="@+id/btn_prompts"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        app:icon="@drawable/ic_mtrl_expand"
-                        app:iconTint="?attr/colorPrimary" />
+                        android:layout_width="36dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Prompts"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_mtrl_expand"
+                        app:tint="#AFAFC8" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/input_layout"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        app:boxBackgroundMode="filled"
-                        app:boxCornerRadiusTopStart="24dp"
-                        app:boxCornerRadiusTopEnd="24dp"
-                        app:boxCornerRadiusBottomStart="24dp"
-                        app:boxCornerRadiusBottomEnd="24dp"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="0dp"
-                        android:hint="Sua mensagem...">
+                        android:background="@drawable/bg_gc_chat_input"
+                        android:hint="Mensagem para o GC-AI"
+                        app:boxBackgroundMode="none"
+                        app:hintTextColor="#777792">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/input_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:background="@android:color/transparent"
                             android:inputType="textMultiLine"
                             android:maxLines="5"
-                            android:background="@android:color/transparent" />
+                            android:minHeight="46dp"
+                            android:paddingHorizontal="14dp"
+                            android:textColor="#EEEEFF"
+                            android:textColorHint="#777792" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_send"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginStart="8dp"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
-                        app:icon="@drawable/ic_mtrl_run" />
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="7dp"
+                        app:backgroundTint="#087FA5"
+                        app:icon="@drawable/ic_mtrl_run"
+                        app:iconTint="#FFFFFF" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_stop_agent"
+                        style="@style/Widget.Material3.Button.IconButton.Filled"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="7dp"
+                        android:visibility="gone"
+                        app:backgroundTint="#A52A47"
+                        app:icon="@drawable/ic_mtrl_stop"
+                        app:iconTint="#FFFFFF" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

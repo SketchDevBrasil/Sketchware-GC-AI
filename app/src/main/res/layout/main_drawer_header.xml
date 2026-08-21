@@ -13,9 +13,11 @@
         android:layout_height="wrap_content" />
 
     <ImageView
-        android:layout_width="140dp"
-        android:layout_height="140dp"
-        android:scaleType="fitCenter"
-        app:srcCompat="@drawable/sdbcodflow_logo" />
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="Sketchware-GC-AI"
+        android:scaleType="centerCrop"
+        app:srcCompat="@drawable/ic_gc_ai_rounded" />
 
 </LinearLayout>

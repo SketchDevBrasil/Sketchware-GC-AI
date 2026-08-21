@@ -31,6 +31,7 @@ import a.a.a.wq;
 import a.a.a.yB;
 import mod.hey.studios.project.ProjectSettingsDialog;
 import mod.hey.studios.project.backup.BackupRestoreManager;
+import mod.hey.studios.project.github.GitHubImportManager;
 import mod.hey.studios.project.github.GitHubUploadManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -264,6 +265,16 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         binding.githubUpload.setOnClickListener(v -> {
             uploadToGitHub(projectMap);
             projectOptionsBSD.dismiss();
+        });
+
+        binding.githubLogin.setOnClickListener(v -> {
+            new GitHubUploadManager(activity).showLoginDialog(null);
+            projectOptionsBSD.dismiss();
+        });
+
+        binding.githubImport.setOnClickListener(v -> {
+            projectOptionsBSD.dismiss();
+            new GitHubImportManager(activity, projectsFragment).showImportDialog();
         });
 
         binding.exportSign.setOnClickListener(v -> {

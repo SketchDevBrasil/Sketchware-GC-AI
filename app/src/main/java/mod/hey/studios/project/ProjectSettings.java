@@ -60,6 +60,11 @@ public class ProjectSettings {
      * Setting to use new xml command
      */
     public static final String SETTING_NEW_XML_COMMAND = "xml_command";
+    /**
+     * Setting for the project's GitHub repository URL
+     */
+    public static final String SETTING_GITHUB_URL = "github_url";
+
     public static final String SETTING_GENERIC_VALUE_TRUE = "true";
     public static final String SETTING_GENERIC_VALUE_FALSE = "false";
     private static final String TAG = "ProjectSettings";

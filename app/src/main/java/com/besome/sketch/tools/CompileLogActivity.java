@@ -109,7 +109,11 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         binding.formatButton.setOnClickListener(v -> options.show());
 
         binding.fabAgente.setOnClickListener(v -> {
-            String logText = binding.tvCompileLog.getText().toString();
+            String logText = getRawCompileLog();
+            if (logText == null || logText.trim().isEmpty()) {
+                SketchwareUtil.toast("No compile errors to send.");
+                return;
+            }
             mod.sdb.agente.SdbAgenteChatSheet sheet =
                     mod.sdb.agente.SdbAgenteChatSheet.newInstanceForCompileError(sc_id, logText);
             sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
@@ -121,8 +125,7 @@ public class CompileLogActivity extends BaseAppCompatActivity {
     }
 
     private void setErrorText() {
-        String error = getIntent().getStringExtra("error");
-        if (error == null) error = compileErrorSaver.getLogsFromFile();
+        String error = getRawCompileLog();
         if (error == null) {
             binding.noContentLayout.setVisibility(View.VISIBLE);
             binding.optionsLayout.setVisibility(View.GONE);
@@ -134,6 +137,12 @@ public class CompileLogActivity extends BaseAppCompatActivity {
 
         binding.tvCompileLog.setText(CompileLogHelper.getColoredLogs(this, error));
         binding.tvCompileLog.setTextIsSelectable(true);
+    }
+
+    private String getRawCompileLog() {
+        String error = getIntent().getStringExtra("error");
+        if (error == null && compileErrorSaver != null) error = compileErrorSaver.getLogsFromFile();
+        return error;
     }
 
     private void applyLogViewerPreferences() {

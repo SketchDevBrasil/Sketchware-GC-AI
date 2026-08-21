@@ -1,0 +1,36 @@
+name: "💡 Sugerir funcionalidade / Feature request"
+description: "Uma ideia para o Sketchware GC AI / An idea for Sketchware GC AI"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Que problema isso resolve? / What problem does this solve?
+      description: |
+        Comece pelo problema, não pela solução. O que hoje é difícil, demorado ou impossível?
+      placeholder: "Toda vez que eu quero X, preciso fazer Y na mão em cada tela."
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Sua ideia / Your idea
+      description: Como você imagina que isso funcionaria dentro do app?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Já tentou outro jeito? / Alternatives you tried
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Participação
+      options:
+        - label: Eu toparia tentar implementar isso e abrir um PR
+          required: false

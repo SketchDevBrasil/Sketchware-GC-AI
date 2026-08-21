@@ -664,6 +664,22 @@ public class yq {
                             N.addPermission(jq.PERMISSION_INTERNET);
                             break;
 
+                        case "addSourceDirectly":
+                            if (block.parameters != null && !block.parameters.isEmpty()) {
+                                String source = block.parameters.get(0);
+                                if (source != null) {
+                                    if (source.contains("com.google.gson")
+                                            || source.matches("(?s).*\\b(?:Gson|TypeToken)\\b.*")) {
+                                        N.isGsonUsed = true;
+                                    }
+                                    if (source.contains("com.bumptech.glide") || source.contains("Glide.with(")) {
+                                        N.isGlideUsed = true;
+                                        N.addPermission(jq.PERMISSION_INTERNET);
+                                    }
+                                }
+                            }
+                            break;
+
                         case "webViewLoadUrl":
                             N.addPermission(jq.PERMISSION_INTERNET);
                             N.addPermission(jq.PERMISSION_ACCESS_NETWORK_STATE);

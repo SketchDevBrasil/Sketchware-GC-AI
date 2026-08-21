@@ -123,7 +123,8 @@
         android:layout_alignParentBottom="true"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="92dp"
-        app:backgroundTint="@color/color_primary"
-        app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
-        app:tint="@android:color/white" />
+        app:backgroundTint="@color/gc_ai_fab_background"
+        app:maxImageSize="40dp"
+        app:srcCompat="@drawable/ic_gc_ai_rounded"
+        app:tint="@null" />
 </RelativeLayout>

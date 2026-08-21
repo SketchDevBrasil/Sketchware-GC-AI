@@ -1,0 +1,95 @@
+name: "🐞 Reportar bug / Report a bug"
+description: "Algo não funciona ou o app crashou / Something is broken or the app crashed"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Quanto mais detalhe, mais rápido a correção.
+        *Thanks for reporting — feel free to answer in English.*
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Antes de abrir / Before opening
+      options:
+        - label: Procurei nas issues e não achei este problema já reportado
+          required: true
+        - label: Estou usando a versão mais recente do Sketchware GC AI
+          required: false
+
+  - type: textarea
+    id: what
+    attributes:
+      label: O que acontece / What happens
+      description: Descreva o problema em uma ou duas frases.
+      placeholder: "O app fecha sozinho quando eu saio do editor de design."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir / Steps to reproduce
+      description: Passo a passo, do jeito mais exato que você conseguir.
+      placeholder: |
+        1. Abrir o projeto X
+        2. Entrar no editor de design
+        3. Tocar em voltar e escolher "Salvar e sair"
+        4. O app fecha
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava / Expected behavior
+    validations:
+      required: false
+
+  - type: textarea
+    id: crashlog
+    attributes:
+      label: Relatório de crash / Crash report
+      description: |
+        Se o app crashou, cole o **relatório inteiro**, incluindo o cabeçalho com versão,
+        idioma, SDK e modelo do aparelho. Sem o stack trace fica muito difícil achar a causa.
+        *If the app crashed, paste the full report including the header — not just the last line.*
+      render: text
+      placeholder: |
+        Sketchware GC AI v9.8.8 (151)
+        base.apk size: ...
+        Locale: pt_BR
+        SDK version: 36
+        Brand: POCO
+        Manufacturer: Xiaomi
+        Model: ...
+
+        java.lang.NullPointerException: ...
+         at ...
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão do app / App version
+      placeholder: "v9.8.8 (151)"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Aparelho e Android / Device and Android version
+      placeholder: "POCO X6 Pro, Android 16 (SDK 36)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Mais alguma coisa? / Anything else?
+      description: Prints, vídeo, o projeto `.swb` que reproduz o problema — tudo ajuda.
+    validations:
+      required: false

@@ -80,6 +80,8 @@ public class MainDrawer extends NavigationView {
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             intent.putExtra("select", "changelog");
             activity.startActivity(intent);
+        } else if (id == R.id.official_gc_ai) {
+            openUrl("https://play.google.com/store/apps/details?id=com.genesiscode.app");
         } else if (id == R.id.program_info) {
             Intent intent = new Intent(activity, ProgramInfoActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);

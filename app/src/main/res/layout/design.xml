@@ -61,9 +61,10 @@
                     android:layout_gravity="bottom|end"
                     android:layout_marginEnd="96dp"
                     android:layout_marginBottom="16dp"
-                    app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
-                    app:backgroundTint="?attr/colorPrimaryContainer"
-                    app:tint="?attr/colorOnPrimaryContainer"
+                    app:srcCompat="@drawable/ic_gc_ai_rounded"
+                    app:backgroundTint="@color/gc_ai_fab_background"
+                    app:maxImageSize="40dp"
+                    app:tint="@null"
                     android:contentDescription="Agente AI" />
             </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
