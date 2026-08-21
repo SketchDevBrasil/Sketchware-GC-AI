@@ -3,15 +3,18 @@
 ## Versões suportadas
 
 Apenas a versão mais recente publicada em
-[Releases](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/releases) recebe correções.
+[Releases](https://github.com/SketchDevBrasil/Sketchware-GC-AI/releases) recebe correções.
 
 ## Reportando uma vulnerabilidade
 
 **Não abra uma issue pública** para falhas de segurança.
 
-Use o canal privado do GitHub: aba **Security → Report a vulnerability** neste repositório
-([link direto](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/security/advisories/new)).
+Prefira o canal privado do GitHub: aba **Security → Report a vulnerability** neste
+repositório ([link direto](https://github.com/SketchDevBrasil/Sketchware-GC-AI/security/advisories/new)).
 Só o mantenedor enxerga o relato.
+
+Se preferir, ou se o canal do GitHub não estiver disponível, escreva para
+**kodeshaplicativos@gmail.com**.
 
 Inclua no relato:
 
@@ -34,7 +37,7 @@ O que **não** é vulnerabilidade deste projeto:
 
 - o app pedir permissões do Android que ele de fato usa;
 - crashes sem impacto de segurança — esses vão como
-  [bug normal](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=bug_report.yml);
+  [bug normal](https://github.com/SketchDevBrasil/Sketchware-GC-AI/issues/new?template=bug_report.yml);
 - falhas do próprio Sketchware original, cujo código vem compilado nos `.jar` de `app/libs/`.
 
 ## Sobre as chaves de API do agente de IA

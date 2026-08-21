@@ -15,7 +15,7 @@ body:
       options:
         - label: Procurei nas issues e não achei este problema já reportado
           required: true
-        - label: Estou usando a versão mais recente do SDB CodFlow
+        - label: Estou usando a versão mais recente do Sketchware GC AI
           required: false
 
   - type: textarea
@@ -57,7 +57,7 @@ body:
         *If the app crashed, paste the full report including the header — not just the last line.*
       render: text
       placeholder: |
-        SDB CodFlow v9.8.8 (151)
+        Sketchware GC AI v9.8.8 (151)
         base.apk size: ...
         Locale: pt_BR
         SDK version: 36

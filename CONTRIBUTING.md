@@ -1,6 +1,6 @@
-# Contribuindo com o SDB CodFlow
+# Contribuindo com o Sketchware GC AI
 
-Obrigado pelo interesse! Este repositório é o código-fonte do **SDB CodFlow**, um mod do
+Obrigado pelo interesse! Este repositório é o código-fonte do **Sketchware GC AI**, um mod do
 Sketchware Pro com um agente de IA integrado. Contribuições são bem-vindas — de correção de
 crash a tradução.
 
@@ -19,8 +19,8 @@ Ao enviar um PR, você concorda que sua contribuição seja distribuída sob os 
 Você precisa de **JDK 17** e do Android SDK. O Android Studio é o caminho mais fácil.
 
 ```bash
-git clone https://github.com/SketchDevBrasil/Sketchware-sdbcodflow.git
-cd Sketchware-sdbcodflow
+git clone https://github.com/SketchDevBrasil/Sketchware-GC-AI.git
+cd Sketchware-GC-AI
 ./gradlew assembleDebug
 ```
 
@@ -39,7 +39,7 @@ O `local.properties` é gerado pelo Android Studio e está no `.gitignore` — n
 | `a.a.a` | Código original do Sketchware, ofuscado. **Boa parte não está aqui** — vem pronta dos `.jar` em `app/libs/`. |
 | `com.besome.sketch` | Telas originais do Sketchware (editor de design, lógica, compilação). |
 | `mod.*` | Contribuições da comunidade ao Sketchware Pro, organizadas por autor. |
-| `mod.sdb.agente` | O agente de IA do SDB CodFlow. É aqui que fica a maior parte do que é exclusivo deste mod. |
+| `mod.sdb.agente` | O agente de IA do Sketchware GC AI. É aqui que fica a maior parte do que é exclusivo deste mod. |
 | `pro.sketchware` | Código novo e reescrito do Sketchware Pro. |
 
 ### Sobre o código que está dentro dos `.jar`
@@ -96,7 +96,7 @@ diferentes.
 
 ## Reportando bugs
 
-Use o [template de bug](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=bug_report.yml).
+Use o [template de bug](https://github.com/SketchDevBrasil/Sketchware-GC-AI/issues/new?template=bug_report.yml).
 Se o app crashou, **cole o relatório de crash inteiro** — incluindo o cabeçalho com versão,
 modelo e Android. O stack trace sozinho já resolve metade dos casos.
 

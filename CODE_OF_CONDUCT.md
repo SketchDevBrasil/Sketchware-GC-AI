@@ -30,9 +30,12 @@ esteja representando o projeto.
 
 ## Como reportar
 
-Se alguém estiver quebrando estas regras, avise o mantenedor em privado pelo GitHub
-([@SketchDevBrasil](https://github.com/SketchDevBrasil)). Relatos são tratados com
-discrição — quem reporta não fica exposto.
+Se alguém estiver quebrando estas regras, avise o mantenedor em privado:
+
+- por e-mail: **kodeshaplicativos@gmail.com**
+- ou pelo GitHub: [@SketchDevBrasil](https://github.com/SketchDevBrasil)
+
+Relatos são tratados com discrição — quem reporta não fica exposto.
 
 ## Consequências
 

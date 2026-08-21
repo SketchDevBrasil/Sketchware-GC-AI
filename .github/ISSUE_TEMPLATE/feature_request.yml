@@ -1,5 +1,5 @@
 name: "💡 Sugerir funcionalidade / Feature request"
-description: "Uma ideia para o SDB CodFlow / An idea for SDB CodFlow"
+description: "Uma ideia para o Sketchware GC AI / An idea for Sketchware GC AI"
 labels: ["enhancement"]
 body:
   - type: textarea

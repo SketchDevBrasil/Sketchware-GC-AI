@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: 💬 Dúvida de uso / Usage question
-    url: https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/discussions
+    url: https://github.com/SketchDevBrasil/Sketchware-GC-AI/discussions
     about: Para perguntas sobre como usar o app, use Discussions em vez de abrir uma issue.
   - name: 🔒 Falha de segurança / Security issue
-    url: https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/security/advisories/new
+    url: https://github.com/SketchDevBrasil/Sketchware-GC-AI/security/advisories/new
     about: Vulnerabilidades devem ser reportadas em privado, nunca em issue pública.

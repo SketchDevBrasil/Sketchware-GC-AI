@@ -2,19 +2,19 @@
   <img src="assets/Sketchware-Pro.png" style="width: 30%;" />
 </p>
 
-# SDB CodFlow
+# Sketchware GC AI
 
-[![Android CI](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/actions/workflows/android.yml/badge.svg)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/actions/workflows/android.yml)
-[![GitHub contributors](https://img.shields.io/github/contributors/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/graphs/contributors)
-[![GitHub last commit](https://img.shields.io/github/last-commit/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/commits/)
-[![Total downloads](https://img.shields.io/github/downloads/SketchDevBrasil/Sketchware-sdbcodflow/total)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/releases)
-[![Repository Size](https://img.shields.io/github/repo-size/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow)
+[![Android CI](https://github.com/SketchDevBrasil/Sketchware-GC-AI/actions/workflows/android.yml/badge.svg)](https://github.com/SketchDevBrasil/Sketchware-GC-AI/actions/workflows/android.yml)
+[![GitHub contributors](https://img.shields.io/github/contributors/SketchDevBrasil/Sketchware-GC-AI)](https://github.com/SketchDevBrasil/Sketchware-GC-AI/graphs/contributors)
+[![GitHub last commit](https://img.shields.io/github/last-commit/SketchDevBrasil/Sketchware-GC-AI)](https://github.com/SketchDevBrasil/Sketchware-GC-AI/commits/)
+[![Total downloads](https://img.shields.io/github/downloads/SketchDevBrasil/Sketchware-GC-AI/total)](https://github.com/SketchDevBrasil/Sketchware-GC-AI/releases)
+[![Repository Size](https://img.shields.io/github/repo-size/SketchDevBrasil/Sketchware-GC-AI)](https://github.com/SketchDevBrasil/Sketchware-GC-AI)
 
-**SDB CodFlow** é um mod do [Sketchware Pro](https://github.com/Sketchware-Pro/Sketchware-Pro)
+**Sketchware GC AI** é um mod do [Sketchware Pro](https://github.com/Sketchware-Pro/Sketchware-Pro)
 com um agente de IA integrado, que entende o projeto aberto e edita telas, blocos e código
 a partir de conversa. Este repositório é o código-fonte dele.
 
-*SDB CodFlow is a Sketchware Pro mod with a built-in AI agent that reads your open project and
+*Sketchware GC AI is a Sketchware Pro mod with a built-in AI agent that reads your open project and
 edits screens, blocks and code through conversation. Issues and PRs in English are welcome.*
 
 ## Como contribuir
@@ -23,8 +23,8 @@ Leia o **[CONTRIBUTING.md](CONTRIBUTING.md)** — ele cobre como compilar, o map
 o padrão de commits e como investigar crashes que caem dentro dos `.jar` fechados do
 Sketchware original.
 
-- 🐞 [Reportar um bug](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=bug_report.yml)
-- 💡 [Sugerir uma funcionalidade](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=feature_request.yml)
+- 🐞 [Reportar um bug](https://github.com/SketchDevBrasil/Sketchware-GC-AI/issues/new?template=bug_report.yml)
+- 💡 [Sugerir uma funcionalidade](https://github.com/SketchDevBrasil/Sketchware-GC-AI/issues/new?template=feature_request.yml)
 - 🤝 [Código de Conduta](CODE_OF_CONDUCT.md)
 - 🔒 [Política de Segurança](SECURITY.md)
 
