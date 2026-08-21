@@ -220,7 +220,7 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
         inputText.setText("");
 
         // Show "thinking" state
-        final ChatMessage thinkingMsg = new ChatMessage("Aguardando resposta do SDBCodFlow...", false);
+        final ChatMessage thinkingMsg = new ChatMessage("GC-AI esta analisando o projeto...", false);
         messages.add(thinkingMsg);
         adapter.notifyItemInserted(messages.size() - 1);
         chatRecycler.scrollToPosition(messages.size() - 1);
@@ -315,88 +315,236 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
     }
 
     private void showApiKeyDialog() {
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
         container.setPadding(padding, padding / 2, padding, padding / 2);
+        scrollView.addView(container);
 
-        final EditText inputKey = new EditText(this);
-        inputKey.setText(agente.getApiKey());
-        inputKey.setHint("API Key (ex: AIza...)");
-        
+        // ===== Provider Selection =====
+        TextView labelProvider = new TextView(this);
+        labelProvider.setText("Provedor de IA:");
+        labelProvider.setTextSize(16);
+        labelProvider.setTypeface(null, android.graphics.Typeface.BOLD);
+        container.addView(labelProvider);
+
+        com.google.android.material.chip.ChipGroup providerChips = new com.google.android.material.chip.ChipGroup(this);
+        providerChips.setSingleSelection(true);
+        providerChips.setSelectionRequired(true);
+
+        com.google.android.material.chip.Chip chipGemini = new com.google.android.material.chip.Chip(this);
+        chipGemini.setText("Google Gemini");
+        chipGemini.setCheckable(true);
+
+        com.google.android.material.chip.Chip chipOpenRouter = new com.google.android.material.chip.Chip(this);
+        chipOpenRouter.setText("OpenRouter (IAs Grátis)");
+        chipOpenRouter.setCheckable(true);
+
+        com.google.android.material.chip.Chip chipClaude = new com.google.android.material.chip.Chip(this);
+        chipClaude.setText("Claude (Anthropic)");
+        chipClaude.setCheckable(true);
+
+        providerChips.addView(chipGemini);
+        providerChips.addView(chipOpenRouter);
+        providerChips.addView(chipClaude);
+        container.addView(providerChips);
+
+        // ===== Gemini Section =====
+        LinearLayout geminiSection = new LinearLayout(this);
+        geminiSection.setOrientation(LinearLayout.VERTICAL);
+
         com.google.android.material.button.MaterialButton btnGetLink = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
         btnGetLink.setText("Obter Chave Grátis (AI Studio)");
         btnGetLink.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"));
             startActivity(intent);
         });
-        container.addView(btnGetLink);
-        
-        final EditText inputModel = new EditText(this);
-        inputModel.setText(agente.getChatModel());
-        inputModel.setHint("Modelo (ex: gemini-2.0-flash)");
+        geminiSection.addView(btnGetLink);
+
+        final EditText inputKey = new EditText(this);
+        inputKey.setText(agente.getApiKey());
+        inputKey.setHint("API Key (ex: AIza...)");
 
         TextView labelKey = new TextView(this);
         labelKey.setText("Google Gemini API Key:");
-        container.addView(labelKey);
-        container.addView(inputKey);
+        geminiSection.addView(labelKey);
+        geminiSection.addView(inputKey);
 
         TextView labelModel = new TextView(this);
-        labelModel.setText("\nEscolha ou Digite o Modelo:");
-        container.addView(labelModel);
-        
-        // Elite Models requested by user
-        String[] models = {
-            "gemini-3-flash-preview",
-            "gemini-3.1-flash-lite-preview",
-            "gemini-3.1-pro-preview",
-            "gemini-2.5-flash",
-            "gemini-2.5-pro"
-        };
+        labelModel.setText("\nModelo Gemini:");
+        geminiSection.addView(labelModel);
+
+        final EditText inputGeminiModel = new EditText(this);
+        inputGeminiModel.setText(agente.getChatModel());
+        inputGeminiModel.setHint("Modelo (ex: gemini-2.5-flash)");
+
         LinearLayout modelButtons = new LinearLayout(this);
         modelButtons.setOrientation(LinearLayout.VERTICAL);
-        
-        for (String m : models) {
+        for (String m : SdbAgenteSk.GEMINI_MODELS) {
             com.google.android.material.button.MaterialButton btn = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
             btn.setText(m);
             btn.setAllCaps(false);
-            btn.setOnClickListener(v -> inputModel.setText(m));
+            btn.setOnClickListener(v -> inputGeminiModel.setText(m));
             modelButtons.addView(btn);
         }
-        
-        container.addView(modelButtons);
-        container.addView(inputModel);
+        geminiSection.addView(modelButtons);
+        geminiSection.addView(inputGeminiModel);
 
+        container.addView(geminiSection);
+
+        // ===== OpenRouter Section =====
+        LinearLayout openRouterSection = new LinearLayout(this);
+        openRouterSection.setOrientation(LinearLayout.VERTICAL);
+
+        com.google.android.material.button.MaterialButton btnGetOR = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
+        btnGetOR.setText("Obter Chave (openrouter.ai)");
+        btnGetOR.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://openrouter.ai/keys"));
+            startActivity(intent);
+        });
+        openRouterSection.addView(btnGetOR);
+
+        final EditText inputORKey = new EditText(this);
+        inputORKey.setText(agente.getOpenRouterKey());
+        inputORKey.setHint("OpenRouter Key (ex: sk-or-...)");
+
+        TextView labelORKey = new TextView(this);
+        labelORKey.setText("OpenRouter API Key:");
+        openRouterSection.addView(labelORKey);
+        openRouterSection.addView(inputORKey);
+
+        TextView labelORModel = new TextView(this);
+        labelORModel.setText("\nModelos Grátis disponíveis:");
+        openRouterSection.addView(labelORModel);
+
+        LinearLayout orModelButtons = new LinearLayout(this);
+        orModelButtons.setOrientation(LinearLayout.VERTICAL);
+
+        final EditText inputORModel = new EditText(this);
+        inputORModel.setText(agente.getOpenRouterModel());
+        inputORModel.setHint("Modelo OpenRouter");
+
+        for (String m : SdbAgenteSk.OPENROUTER_FREE_MODELS) {
+            com.google.android.material.button.MaterialButton btn = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
+            btn.setText(m.replace(":free", " (grátis)"));
+            btn.setAllCaps(false);
+            btn.setOnClickListener(v -> inputORModel.setText(m));
+            orModelButtons.addView(btn);
+        }
+        openRouterSection.addView(orModelButtons);
+        openRouterSection.addView(inputORModel);
+
+        container.addView(openRouterSection);
+
+        // ===== Claude Section =====
+        LinearLayout claudeSection = new LinearLayout(this);
+        claudeSection.setOrientation(LinearLayout.VERTICAL);
+
+        com.google.android.material.button.MaterialButton btnGetClaude = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
+        btnGetClaude.setText("Obter Chave (console.anthropic.com)");
+        btnGetClaude.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://console.anthropic.com/settings/keys"));
+            startActivity(intent);
+        });
+        claudeSection.addView(btnGetClaude);
+
+        final EditText inputClaudeKey = new EditText(this);
+        inputClaudeKey.setText(agente.getClaudeKey());
+        inputClaudeKey.setHint("Claude Key (ex: sk-ant-...)");
+
+        TextView labelClaudeKey = new TextView(this);
+        labelClaudeKey.setText("Claude API Key:");
+        claudeSection.addView(labelClaudeKey);
+        claudeSection.addView(inputClaudeKey);
+
+        TextView labelClaudeModel = new TextView(this);
+        labelClaudeModel.setText("\nModelo Claude:");
+        claudeSection.addView(labelClaudeModel);
+
+        final EditText inputClaudeModel = new EditText(this);
+        inputClaudeModel.setText(agente.getClaudeModel());
+        inputClaudeModel.setHint("Modelo (ex: claude-sonnet-4-20250514)");
+
+        LinearLayout claudeModelButtons = new LinearLayout(this);
+        claudeModelButtons.setOrientation(LinearLayout.VERTICAL);
+        for (String m : SdbAgenteSk.CLAUDE_MODELS) {
+            com.google.android.material.button.MaterialButton btn = new com.google.android.material.button.MaterialButton(this, null, R.attr.borderlessButtonStyle);
+            btn.setText(m);
+            btn.setAllCaps(false);
+            btn.setOnClickListener(v -> inputClaudeModel.setText(m));
+            claudeModelButtons.addView(btn);
+        }
+        claudeSection.addView(claudeModelButtons);
+        claudeSection.addView(inputClaudeModel);
+
+        container.addView(claudeSection);
+
+        // ===== Toggle visibility =====
+        String currentProvider = agente.getProvider();
+        boolean isOpenRouter = SdbAgenteSk.PROVIDER_OPENROUTER.equals(currentProvider);
+        boolean isClaude = SdbAgenteSk.PROVIDER_CLAUDE.equals(currentProvider);
+        chipGemini.setChecked(!isOpenRouter && !isClaude);
+        chipOpenRouter.setChecked(isOpenRouter);
+        chipClaude.setChecked(isClaude);
+        geminiSection.setVisibility(!isOpenRouter && !isClaude ? View.VISIBLE : View.GONE);
+        openRouterSection.setVisibility(isOpenRouter ? View.VISIBLE : View.GONE);
+        claudeSection.setVisibility(isClaude ? View.VISIBLE : View.GONE);
+
+        providerChips.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            boolean orSelected = checkedIds.contains(chipOpenRouter.getId());
+            boolean clSelected = checkedIds.contains(chipClaude.getId());
+            geminiSection.setVisibility(!orSelected && !clSelected ? View.VISIBLE : View.GONE);
+            openRouterSection.setVisibility(orSelected ? View.VISIBLE : View.GONE);
+            claudeSection.setVisibility(clSelected ? View.VISIBLE : View.GONE);
+        });
+
+        // ===== Test Button =====
         com.google.android.material.button.MaterialButton btnTest = new com.google.android.material.button.MaterialButton(this);
         btnTest.setText("Testar Conexão");
         btnTest.setOnClickListener(v -> {
-            String key = inputKey.getText().toString().trim();
-            String model = inputModel.getText().toString().trim();
-            if (key.isEmpty()) {
-                SketchwareUtil.toast("Insira a chave primeiro");
-                return;
+            if (chipClaude.isChecked()) {
+                agente.setProvider(SdbAgenteSk.PROVIDER_CLAUDE);
+                agente.setClaudeKey(inputClaudeKey.getText().toString().trim());
+                agente.setClaudeModel(inputClaudeModel.getText().toString().trim());
+            } else if (chipOpenRouter.isChecked()) {
+                agente.setProvider(SdbAgenteSk.PROVIDER_OPENROUTER);
+                agente.setOpenRouterKey(inputORKey.getText().toString().trim());
+                agente.setOpenRouterModel(inputORModel.getText().toString().trim());
+            } else {
+                agente.setProvider(SdbAgenteSk.PROVIDER_GEMINI);
+                agente.setApiKey(inputKey.getText().toString().trim());
+                agente.setChatModel(inputGeminiModel.getText().toString().trim());
             }
-            agente.setApiKey(key);
-            agente.setChatModel(model);
             SketchwareUtil.toast("Testando...");
             agente.testConnection(new SdbAgenteSk.ResponseListener() {
-                @Override public void onResponse(String r) { SketchwareUtil.toast("Sucesso: " + r); }
-                @Override public void onError(String e) { SketchwareUtil.toast("Erro: " + e); }
+                @Override public void onResponse(String r) { runOnUiThread(() -> SketchwareUtil.toast("Sucesso: " + r)); }
+                @Override public void onError(String e) { runOnUiThread(() -> SketchwareUtil.toast("Erro: " + e)); }
             });
         });
         container.addView(btnTest);
 
         new MaterialAlertDialogBuilder(this)
-            .setTitle("Configuração do SDBCodFlow")
-            .setMessage("Configure sua chave e escolha a inteligência do Agente.")
-            .setView(container)
+            .setTitle("Configuração do GC-AI")
+            .setMessage("Configure o provedor de IA e escolha o modelo.")
+            .setView(scrollView)
             .setPositiveButton("Salvar", (d, w) -> {
-                String key = inputKey.getText().toString().trim();
-                String model = inputModel.getText().toString().trim();
-                
-                agente.setApiKey(key);
-                agente.setChatModel(model);
-                SketchwareUtil.toast("SDBCodFlow configurado para " + model);
+                if (chipClaude.isChecked()) {
+                    agente.setProvider(SdbAgenteSk.PROVIDER_CLAUDE);
+                    agente.setClaudeKey(inputClaudeKey.getText().toString().trim());
+                    agente.setClaudeModel(inputClaudeModel.getText().toString().trim());
+                    SketchwareUtil.toast("Claude: " + inputClaudeModel.getText().toString().trim());
+                } else if (chipOpenRouter.isChecked()) {
+                    agente.setProvider(SdbAgenteSk.PROVIDER_OPENROUTER);
+                    agente.setOpenRouterKey(inputORKey.getText().toString().trim());
+                    agente.setOpenRouterModel(inputORModel.getText().toString().trim());
+                    SketchwareUtil.toast("OpenRouter: " + inputORModel.getText().toString().trim());
+                } else {
+                    agente.setProvider(SdbAgenteSk.PROVIDER_GEMINI);
+                    agente.setApiKey(inputKey.getText().toString().trim());
+                    agente.setChatModel(inputGeminiModel.getText().toString().trim());
+                    SketchwareUtil.toast("Gemini: " + inputGeminiModel.getText().toString().trim());
+                }
             })
             .setNegativeButton("Cancelar", null)
             .show();
@@ -511,7 +659,7 @@ public class SdbAgenteActivity extends BaseAppCompatActivity {
             text.setOnLongClickListener(view -> {
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) 
                         v.getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("SDBCodFlow", text.getText());
+                android.content.ClipData clip = android.content.ClipData.newPlainText("GC-AI", text.getText());
                 clipboard.setPrimaryClip(clip);
                 pro.sketchware.utility.SketchwareUtil.toast("Texto copiado para a área de transferência");
                 return true;

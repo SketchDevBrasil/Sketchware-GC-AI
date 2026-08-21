@@ -578,15 +578,33 @@ public class ProjectBuilder {
             /* Start compiling */
             org.eclipse.jdt.internal.compiler.batch.Main main = new org.eclipse.jdt.internal.compiler.batch.Main(outWriter, errWriter, false, null, null);
             LogUtil.d(TAG, "Running Eclipse compiler with these arguments: " + args);
-            main.compile(args.toArray(new String[0]));
+            boolean compiledSuccessfully = main.compile(args.toArray(new String[0]));
+            outWriter.flush();
+            errWriter.flush();
 
-            LogUtil.d(TAG, "System.out of Eclipse compiler: " + outOutputStream.getOut());
-            if (main.globalErrorsCount <= 0) {
-                LogUtil.d(TAG, "System.err of Eclipse compiler: " + errOutputStream.getOut());
+            String standardOutput = outOutputStream.getOut();
+            String errorOutput = errOutputStream.getOut();
+            LogUtil.d(TAG, "System.out of Eclipse compiler: " + standardOutput);
+            LogUtil.d(TAG, "System.err of Eclipse compiler: " + errorOutput);
+            if (compiledSuccessfully && main.globalErrorsCount <= 0) {
                 LogUtil.d(TAG, "Compiling Java files took " + (System.currentTimeMillis() - savedTimeMillis) + " ms");
             } else {
                 LogUtil.e(TAG, "Failed to compile Java files");
-                throw new zy(errOutputStream.getOut());
+                String diagnostics;
+                if (standardOutput.isEmpty()) {
+                    diagnostics = errorOutput;
+                } else if (errorOutput.isEmpty() || standardOutput.equals(errorOutput)) {
+                    diagnostics = standardOutput;
+                } else {
+                    diagnostics = standardOutput
+                            + (standardOutput.endsWith("\n") ? "" : "\n")
+                            + errorOutput;
+                }
+                if (diagnostics.trim().isEmpty()) {
+                    diagnostics = "ECJ failed without emitting diagnostics (reported errors: "
+                            + main.globalErrorsCount + "). Generated Java sources: " + yq.javaFilesPath;
+                }
+                throw new zy(diagnostics);
             }
         }
     }

@@ -99,7 +99,7 @@ public class DesignDrawer extends LinearLayout {
 
         addDrawerSubheaderItem(R.string.design_drawer_menu_title, content);
         addDrawerItem(R.id.item_library_manager, R.drawable.ic_mtrl_category, R.string.design_drawer_menu_title_library, R.string.design_drawer_menu_description_library, content);
-        addDrawerItem(R.id.item_ai_agent, R.drawable.ic_mtrl_deployed_code, R.string.design_drawer_menu_title_ai_agent, R.string.design_drawer_menu_description_ai_agent, content);
+        addDrawerItem(R.id.item_ai_agent, R.drawable.ic_gc_ai_rounded, R.string.design_drawer_menu_title_ai_agent, R.string.design_drawer_menu_description_ai_agent, content);
         addDrawerItem(R.id.item_view_manager, R.drawable.ic_mtrl_devices, R.string.design_drawer_menu_title_view, R.string.design_drawer_menu_description_view, content);
         addDrawerItem(R.id.item_image_manager, R.drawable.ic_mtrl_image, R.string.design_drawer_menu_title_image, R.string.design_drawer_menu_description_image, content);
         addDrawerItem(R.id.item_sound_manager, R.drawable.ic_mtrl_music, R.string.design_drawer_menu_title_sound, R.string.design_drawer_menu_description_sound, content);
@@ -203,6 +203,9 @@ public class DesignDrawer extends LinearLayout {
 
         public void setContent(int iconResId, String rootTitleText, String subTitleText) {
             binding.imgIcon.setImageResource(iconResId);
+            if (iconResId == R.drawable.ic_gc_ai_rounded) {
+                binding.imgIcon.setImageTintList(null);
+            }
             binding.tvRootTitle.setText(rootTitleText);
             binding.tvSubTitle.setText(subTitleText);
         }

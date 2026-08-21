@@ -66,7 +66,7 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
         itemAutocompleteSymbolPair.setChecked(pref.getBoolean("dlg_acsp", true));
 
         menu.add(Menu.NONE, 999, Menu.NONE, "AI Agente")
-                .setIcon(androidx.appcompat.content.res.AppCompatResources.getDrawable(act, R.drawable.ic_sdbcodflow_sparkle_img))
+                .setIcon(androidx.appcompat.content.res.AppCompatResources.getDrawable(act, R.drawable.ic_gc_ai_rounded))
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 
         binding.toolbar.setOnMenuItemClickListener(item -> {

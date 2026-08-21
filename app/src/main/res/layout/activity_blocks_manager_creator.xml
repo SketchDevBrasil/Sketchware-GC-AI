@@ -362,8 +362,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        app:backgroundTint="@color/color_primary"
-        app:srcCompat="@drawable/ic_sdbcodflow_sparkle_img"
-        app:tint="@android:color/white" />
+        app:backgroundTint="@color/gc_ai_fab_background"
+        app:maxImageSize="40dp"
+        app:srcCompat="@drawable/ic_gc_ai_rounded"
+        app:tint="@null" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

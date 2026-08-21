@@ -67,6 +67,7 @@ import com.topjohnwu.superuser.Shell;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -93,6 +94,7 @@ import a.a.a.yB;
 import a.a.a.yq;
 import a.a.a.zy;
 import dev.chrisbanes.insetter.Insetter;
+import mod.sdb.agente.SdbProjectIntegrityGuard;
 import mod.agus.jcoderz.editor.manage.permission.ManagePermissionActivity;
 import mod.agus.jcoderz.editor.manage.resource.ManageResourceActivity;
 import mod.hey.studios.activity.managers.assets.ManageAssetsActivity;
@@ -211,10 +213,23 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             if (mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT.equals(intent.getAction())) {
                 String scId = intent.getStringExtra("sc_id");
                 if (sc_id != null && sc_id.equals(scId)) {
-                    refresh();
-                    SketchwareUtil.toast("Projeto atualizado pelo Agente!");
+                    refreshAfterAgentEdit(intent.getStringExtra("xml_name"),
+                            intent.getStringArrayListExtra("changed_view_ids"));
                 }
             }
+        }
+    };
+    private final BroadcastReceiver agentBuildRequestReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!mod.sdb.agente.SdbAgenteChatSheet.ACTION_FREE_BUILD_REQUEST.equals(intent.getAction())) {
+                return;
+            }
+            String requestedProject = intent.getStringExtra(
+                    mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_SC_ID);
+            if (sc_id == null || !sc_id.equals(requestedProject)) return;
+            startAgentBuild(intent.getStringExtra(
+                    mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_REQUEST_ID));
         }
     };
 
@@ -285,7 +300,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             } else {
                 xmlLayoutOrientation.setImageResource(R.drawable.ic_screen_rotation_grey600_24dp);
             }
-            viewTabAdapter.initialize(projectFile);
+            try {
+                viewTabAdapter.initialize(projectFile);
+            } catch (RuntimeException error) {
+                android.util.Log.e("DesignActivity", "Falha segura ao renderizar layout", error);
+                SketchwareUtil.toastError("O editor bloqueou um layout inconsistente sem fechar o app.");
+            }
         }
     }
 
@@ -310,6 +330,56 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         } else {
             refreshEventTabAdapter();
             refreshComponentTabAdapter();
+        }
+    }
+
+    private void refreshAfterAgentEdit(String changedXmlName, ArrayList<String> changedViewIds) {
+        if (viewPager == null) return;
+        reloadCurrentProjectFile(changedXmlName);
+        handler.post(() -> {
+            if (isFinishing()) return;
+            refreshFileSelector();
+            refreshViewTabAdapter();
+            refreshEventTabAdapter();
+            refreshComponentTabAdapter();
+            if (viewPager.getAdapter() != null) {
+                viewPager.getAdapter().notifyDataSetChanged();
+            }
+            if (viewTabAdapter != null && viewPager.getCurrentItem() == 0) {
+                viewTabAdapter.i();
+                viewTabAdapter.n();
+                if (changedViewIds != null && !changedViewIds.isEmpty()) {
+                    viewTabAdapter.highlightAgentView(changedViewIds.get(changedViewIds.size() - 1));
+                }
+                viewTabAdapter.showHidePropertyView(true);
+            }
+            SketchwareUtil.toast("Design atualizado pelo Agente!");
+        });
+    }
+
+    private void reloadCurrentProjectFile(String changedXmlName) {
+        if (changedXmlName != null && !changedXmlName.trim().isEmpty()) {
+            String normalized = changedXmlName.endsWith(".xml") ? changedXmlName : changedXmlName + ".xml";
+            ProjectFileBean changedFile = jC.b(sc_id).b(normalized);
+            if (changedFile != null) {
+                projectFile = changedFile;
+                currentJavaFileName = changedFile.getJavaName();
+                return;
+            }
+        }
+
+        if (projectFile != null) {
+            ProjectFileBean current = jC.b(sc_id).b(projectFile.getXmlName());
+            if (current != null) {
+                projectFile = current;
+                currentJavaFileName = current.getJavaName();
+                return;
+            }
+        }
+
+        projectFile = getDefaultProjectFile();
+        if (projectFile != null) {
+            currentJavaFileName = projectFile.getJavaName();
         }
     }
 
@@ -589,12 +659,16 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
         IntentFilter filter = new IntentFilter(BuildTask.ACTION_CANCEL_BUILD);
         IntentFilter refreshFilter = new IntentFilter(mod.sdb.agente.SdbEditEngine.ACTION_REFRESH_PROJECT);
+        IntentFilter agentBuildFilter = new IntentFilter(
+                mod.sdb.agente.SdbAgenteChatSheet.ACTION_FREE_BUILD_REQUEST);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(buildCancelReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
             registerReceiver(refreshReceiver, refreshFilter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(agentBuildRequestReceiver, agentBuildFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(buildCancelReceiver, filter);
             registerReceiver(refreshReceiver, refreshFilter);
+            registerReceiver(agentBuildRequestReceiver, agentBuildFilter);
         }
 
     }
@@ -617,12 +691,55 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
     }
 
+    private void startAgentBuild(String requestId) {
+        if (requestId == null || requestId.trim().isEmpty()) return;
+        if (q == null) {
+            sendAgentBuildResult(requestId, "unavailable", false,
+                    "O projeto ainda nao terminou de carregar.", null);
+            return;
+        }
+        if (currentBuildTask != null && !currentBuildTask.canceled
+                && !currentBuildTask.isBuildFinished) {
+            sendAgentBuildResult(requestId, "unavailable", false,
+                    "Ja existe uma compilacao em andamento.", null);
+            return;
+        }
+
+        saveProject();
+        sendAgentBuildResult(requestId, "started", false, null, null);
+        BuildTask task = new BuildTask(this, false, (success, error, apkPath) ->
+                sendAgentBuildResult(requestId, success ? "success" : "failed",
+                        success, error, apkPath));
+        currentBuildTask = task;
+        task.execute();
+    }
+
+    private void sendAgentBuildResult(String requestId, String state, boolean success,
+                                      String error, String apkPath) {
+        Intent result = new Intent(mod.sdb.agente.SdbAgenteChatSheet.ACTION_FREE_BUILD_RESULT);
+        result.setPackage(getPackageName());
+        result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_SC_ID, sc_id);
+        result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_REQUEST_ID, requestId);
+        result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_STATE, state);
+        result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_SUCCESS, success);
+        if (error != null) {
+            result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_ERROR, error);
+        }
+        if (apkPath != null) {
+            result.putExtra(mod.sdb.agente.SdbAgenteChatSheet.EXTRA_BUILD_APK_PATH, apkPath);
+        }
+        sendBroadcast(result);
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(buildCancelReceiver);
         try {
             unregisterReceiver(refreshReceiver);
+        } catch (Exception ignored) {}
+        try {
+            unregisterReceiver(agentBuildRequestReceiver);
         } catch (Exception ignored) {}
     }
 
@@ -998,7 +1115,14 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     }
 
     void toSdbCodFlow() {
-        toViewCodeEditor(true);
+        // Keep chat mutations tied to the screen that is open in the designer.
+        String xmlName = projectFile != null ? projectFile.getXmlName() : null;
+        mod.sdb.agente.SdbAgenteChatSheet sheet = mod.sdb.agente.SdbAgenteChatSheet.newInstance(
+                sc_id, currentJavaFileName, xmlName, () -> {
+            refresh();
+            SketchwareUtil.toast("Edição aplicada pelo GC-AI!");
+        });
+        sheet.show(getSupportFragmentManager(), "SdbAgenteChatSheet");
     }
 
     /**
@@ -1068,12 +1192,23 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         private final LinearLayout progressContainer;
         private final TextView progressText;
         private final LinearProgressIndicator progressBar;
+        private final boolean installOnSuccess;
+        private final BuildCompletionListener completionListener;
         public volatile boolean canceled;
         private volatile boolean isBuildFinished;
+        private volatile boolean buildSucceeded;
+        private String buildError;
         private boolean isShowingNotification = false;
 
         public BuildTask(DesignActivity activity) {
+            this(activity, true, null);
+        }
+
+        private BuildTask(DesignActivity activity, boolean installOnSuccess,
+                          BuildCompletionListener completionListener) {
             super(activity);
+            this.installOnSuccess = installOnSuccess;
+            this.completionListener = completionListener;
             notificationManager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
             btnRun = activity.btnRun;
             btnOptions = activity.btnOptions;
@@ -1217,10 +1352,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     return;
                 }
 
-                activity.installBuiltApk();
+                buildSucceeded = true;
                 isBuildFinished = true;
+                if (installOnSuccess) activity.installBuiltApk();
             } catch (MissingFileException e) {
                 isBuildFinished = true;
+                buildError = e.getMessage() == null ? e.toString() : e.getMessage();
                 activity.runOnUiThread(() -> {
                     boolean isMissingDirectory = e.isMissingDirectory();
 
@@ -1247,11 +1384,13 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 });
             } catch (zy zy) {
                 isBuildFinished = true;
+                buildError = zy.getMessage();
                 activity.indicateCompileErrorOccurred(zy.getMessage());
             } catch (Throwable tr) {
                 isBuildFinished = true;
+                buildError = Log.getStackTraceString(tr);
                 LogUtil.e("DesignActivity$BuildTask", "Failed to build project", tr);
-                activity.indicateCompileErrorOccurred(Log.getStackTraceString(tr));
+                activity.indicateCompileErrorOccurred(buildError);
             } finally {
                 activity.runOnUiThread(this::onPostExecute);
             }
@@ -1289,6 +1428,14 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     updateRunButton(false);
                     activity.updateBottomMenu();
                     activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
+                if (completionListener != null) {
+                    String error = buildError;
+                    if (!buildSucceeded && (error == null || error.trim().isEmpty())) {
+                        error = canceled ? "Compilacao cancelada." : "A compilacao falhou sem log detalhado.";
+                    }
+                    completionListener.onComplete(buildSucceeded, error,
+                            activity.q == null ? null : activity.q.finalToInstallApkPath);
                 }
             });
         }
@@ -1375,6 +1522,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
     }
 
+    private interface BuildCompletionListener {
+        void onComplete(boolean success, String error, String apkPath);
+    }
+
     private static class ProjectLoader extends BaseTask {
         private final Bundle savedInstanceState;
         private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -1451,6 +1602,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 var sc_id = DesignActivity.sc_id;
                 jC.d(sc_id).a();
                 jC.b(sc_id).m();
+                SdbProjectIntegrityGuard.sanitizeAllLayouts(sc_id);
                 jC.a(sc_id).j();
                 jC.d(sc_id).x();
                 jC.c(sc_id).l();
@@ -1484,6 +1636,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 var sc_id = DesignActivity.sc_id;
                 jC.d(sc_id).a();
                 jC.b(sc_id).m();
+                SdbProjectIntegrityGuard.sanitizeAllLayouts(sc_id);
                 jC.a(sc_id).j();
                 jC.d(sc_id).x();
                 jC.c(sc_id).l();
@@ -1514,7 +1667,13 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             if (activity != null) {
                 eC ecInstance = jC.a(sc_id);
                 synchronized (ecInstance) {
-                    ecInstance.k();
+                    SdbProjectIntegrityGuard.sanitizeAllLayouts(sc_id);
+                    try {
+                        ecInstance.k();
+                    } catch (Throwable saveError) {
+                        // Corrupt widget metadata must not crash the editor on exit.
+                        Log.e("DesignActivity", "Saving unsaved changes failed", saveError);
+                    }
                 }
             }
         }

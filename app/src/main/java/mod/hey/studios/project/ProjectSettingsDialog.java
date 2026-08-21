@@ -9,15 +9,23 @@ import android.view.View;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 
+import java.util.HashMap;
+
+import a.a.a.lC;
+import a.a.a.yB;
+import mod.hey.studios.project.github.GitHubImportManager;
+import mod.hey.studios.project.github.GitHubUploadManager;
 import pro.sketchware.databinding.DialogProjectSettingsBinding;
 
 public class ProjectSettingsDialog {
 
     private final Activity activity;
     private final ProjectSettings settings;
+    private final String scId;
 
     public ProjectSettingsDialog(Activity activity, String sc_id) {
         this.activity = activity;
+        this.scId = sc_id;
         settings = new ProjectSettings(sc_id);
     }
 
@@ -39,6 +47,10 @@ public class ProjectSettingsDialog {
         binding.etTargetSdkVersion.setText(settings.getValue(ProjectSettings.SETTING_TARGET_SDK_VERSION, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION)));
         binding.etApplicationClassName.setText(settings.getValue(ProjectSettings.SETTING_APPLICATION_CLASS, ".SketchApplication"));
 
+        // GitHub URL
+        binding.etGithubUrl.setText(settings.getValue(ProjectSettings.SETTING_GITHUB_URL, ""));
+        binding.etGithubUrl.setTag(ProjectSettings.SETTING_GITHUB_URL);
+
         binding.cbEnableViewbinding.setChecked(
                 settings.getValue(ProjectSettings.SETTING_ENABLE_VIEWBINDING, "false").equals("true"));
         binding.cbRemoveOldMethods.setChecked(
@@ -57,12 +69,26 @@ public class ProjectSettingsDialog {
         binding.cbRemoveOldMethods.setTag(ProjectSettings.SETTING_DISABLE_OLD_METHODS);
         binding.cbUseNewMaterialComponentsAppTheme.setTag(ProjectSettings.SETTING_ENABLE_BRIDGELESS_THEMES);
 
+        // GitHub buttons
+        binding.btnGithubUpload.setOnClickListener(v -> {
+            dialog.dismiss();
+            HashMap<String, Object> project = lC.b(scId);
+            String appName = project != null ? yB.c(project, "my_ws_name") : "project";
+            new GitHubUploadManager(activity).upload(scId, appName);
+        });
+
+        binding.btnGithubImport.setOnClickListener(v -> {
+            dialog.dismiss();
+            new GitHubImportManager(activity, null).showImportDialog();
+        });
+
         dialog.setContentView(binding.getRoot());
 
         View[] preferences = {
                 binding.etMinimumSdkVersion,
                 binding.etTargetSdkVersion,
                 binding.etApplicationClassName,
+                binding.etGithubUrl,
                 binding.cbEnableViewbinding,
                 binding.cbRemoveOldMethods,
                 binding.cbUseNewMaterialComponentsAppTheme

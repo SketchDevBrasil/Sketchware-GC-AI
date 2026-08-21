@@ -272,8 +272,9 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
         binding.btnLinkStore.setOnClickListener(v -> openUrl("https://sketch-dev-brasil.web.app/home"));
         binding.btnLinkTelegram.setOnClickListener(v -> openUrl("https://t.me/sketchdevbrasil"));
+        binding.btnLinkGenesis.setOnClickListener(v -> openUrl("https://play.google.com/store/apps/details?id=com.genesiscode.app"));
         binding.btnLinkYoutube.setOnClickListener(v -> openUrl("https://youtube.com/@sketchdevbrasil"));
-        binding.btnLinkUpdates.setOnClickListener(v -> openUrl("https://sketch-dev-brasil.web.app/sdbcodflow"));
+        binding.btnLinkUpdates.setOnClickListener(v -> openUrl("https://sketch-dev-brasil.web.app/sk-gc-ai"));
 
         if (savedInstanceState != null) {
             projectsFragment = (ProjectsFragment) getSupportFragmentManager().findFragmentByTag(PROJECTS_FRAGMENT_TAG);
@@ -325,13 +326,13 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     @NonNull
     private BottomSheetDialogView getBottomSheetDialogView() {
         BottomSheetDialogView bottomSheetDialog = new BottomSheetDialogView(this);
-        bottomSheetDialog.setTitle("Sketchware Pro SDBCodFlow v8.7.7");
+        bottomSheetDialog.setTitle("Sketchware-GC-AI v9.8.8");
         bottomSheetDialog.setDescription("""
-                Bem-vindo ao Sketchware Pro SDBCodFlow! Esta versão traz melhorias críticas de estabilidade \
-                e a integração avançada da IA Agente SDB.
-                
-                Agora você pode usar IA para injetar lógica diretamente no seu projeto and ver previews do código antes de aplicar.""");
-        bottomSheetDialog.setImage(R.drawable.ic_sdbcodflow_sparkle_img);
+                Bem-vindo ao Sketchware-GC-AI. O agente oficial Genesis Code AI agora está integrado ao fluxo visual, \
+                ao editor de lógica e ao código do projeto, com histórico por conversa e configurações modernas de LLM.
+
+                O motor interno de edição continua compatível com os projetos e operações existentes.""");
+        bottomSheetDialog.setImage(R.drawable.ic_gc_ai_rounded);
 
         bottomSheetDialog.setPositiveButton("View changes", (dialog, which) -> {
             ConfigActivity.setSetting(ConfigActivity.SETTING_CRITICAL_UPDATE_REMINDER, true);

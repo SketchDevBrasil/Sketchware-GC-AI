@@ -126,7 +126,7 @@ public class ProgramInfoActivity extends BaseAppCompatActivity {
                     case ITEM_TELEGRAM ->
                             openUrl("https://t.me/sketchdevbrasil");
                     case ITEM_YOUTUBE -> openUrl("https://youtube.com/@sketchdevbrasil");
-                    case ITEM_SITE -> openUrl("https://sketch-dev-brasil.web.app/sdbcodflow");
+                    case ITEM_SITE -> openUrl("https://sketch-dev-brasil.web.app/sk-gc-ai");
                 }
             }
         }
@@ -146,7 +146,7 @@ public class ProgramInfoActivity extends BaseAppCompatActivity {
         addSingleLineItem(ITEM_SOCIAL_NETWORK, R.string.title_community);
         addTwoLineItem(ITEM_YOUTUBE, "YouTube", "https://youtube.com/@sketchdevbrasil");
         addTwoLineItem(ITEM_TELEGRAM, "Telegram", "https://t.me/sketchdevbrasil");
-        addTwoLineItem(ITEM_SITE, "Site", "https://sketch-dev-brasil.web.app/sdbcodflow");
+        addTwoLineItem(ITEM_SITE, "Site Sketchware-GC-AI", "https://sketch-dev-brasil.web.app/sk-gc-ai");
         addSingleLineItem(ITEM_SYSTEM_INFORMATION, R.string.program_information_title_system_information);
         addSingleLineItem(ITEM_OPEN_SOURCE_LICENSES, R.string.program_information_title_open_source_license, true);
     }

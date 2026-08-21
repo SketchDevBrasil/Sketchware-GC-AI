@@ -21,6 +21,13 @@ import javax.xml.transform.stream.StreamSource;
  */
 public class SdbEditEngine {
     public static final String ACTION_REFRESH_PROJECT = "mod.sdb.agente.REFRESH_PROJECT";
+    private static String lastApplyError = "";
+    private static String lastChangedXmlName = null;
+    private static ApplyReport lastApplyReport = new ApplyReport();
+    private static int batchDepth;
+    private static boolean batchRefreshRequested;
+    private static String batchRefreshScId;
+    private static String batchRefreshEventKey;
 
     public static class ProjectEdit {
         public String type; // "block", "layout", "file"
@@ -48,6 +55,7 @@ public class SdbEditEngine {
         public String view_id; // For backward compatibility with AI output
         public String widget_id;
         public String id; // Alias for widget_id
+        public String new_id; // For rename_widget
         public String parent_id;
         public String parent; // Alias for parent_id
         public int widget_type = -1;
@@ -73,6 +81,11 @@ public class SdbEditEngine {
 
         // For add_moreblock / inject_code (top-level shorthand)
         public String name;
+        public String var_name;
+        public String variable_name;
+        public String list_name;
+        public String moreblock_name;
+        public String block_name;
         public String spec;
         public String code;
         public String java_name; // shorthand: AI can use data.java_name instead of data.attributes.java_name
@@ -92,17 +105,277 @@ public class SdbEditEngine {
         // For add_component
         public String component_type; // "FirebaseDB", "FirebaseAuth", "RequestNetwork", etc.
         public String param1;         // reference path (Firebase), filename (SharedPrefs), unused otherwise
+
+        // For direct project file operations
+        public String path;           // Relative to /.sketchware/data/{scId}/
+        public String find;           // Text to find in patch_file
+        public String replace;        // Replacement text in patch_file
+        public String class_name;     // create_java_class
+        public String layout_name;    // create_layout_xml
+
+        // For create_activity
+        public String screen_name;     // Native Sketchware activity filename, e.g. "login"
+        public String activity_name;   // Alias accepted by the AI, e.g. "LoginActivity"
+        public Boolean no_action_bar;
+        public Boolean fullscreen;
+        public Boolean has_fab;
+        public Boolean has_drawer;
+        public Integer orientation;
+        public Integer keyboard_setting;
+
+        // Offline GC-AI Skill package operations
+        public String skill_id;
+        public String version;
+        public String author;
+        public String description;
+        public List<String> triggers;
+        public List<String> rules;
+        public List<String> permissions;
+        public List<String> skill_operations;
+        public List<java.util.Map<String, Object>> examples;
+        public List<java.util.Map<String, Object>> tests;
+    }
+
+    public static class OperationResult {
+        public int index;
+        public String operation;
+        public boolean success;
+        public String message;
+    }
+
+    public static class ApplyReport {
+        public boolean success;
+        public boolean rolledBack;
+        public int total;
+        public int applied;
+        public final List<String> corrections = new ArrayList<>();
+        public final List<String> affectedXmls = new ArrayList<>();
+        public final List<String> affectedViewIds = new ArrayList<>();
+        public final List<OperationResult> operations = new ArrayList<>();
+
+        public String toUserSummary() {
+            StringBuilder summary = new StringBuilder();
+            summary.append(success ? "Aplicacao concluida" : "Aplicacao cancelada")
+                    .append(": ").append(applied).append("/").append(total).append(" operacoes.");
+            if (rolledBack) summary.append(" O estado anterior foi restaurado.");
+            if (!affectedXmls.isEmpty()) {
+                summary.append("\nTelas: ").append(android.text.TextUtils.join(", ", affectedXmls));
+            }
+            if (!affectedViewIds.isEmpty()) {
+                summary.append("\nWidgets: ").append(android.text.TextUtils.join(", ", affectedViewIds));
+            }
+            if (!corrections.isEmpty()) {
+                summary.append("\nCorrecoes automaticas: ").append(corrections.size());
+            }
+            for (OperationResult result : operations) {
+                summary.append("\n").append(result.success ? "OK " : "ERRO ")
+                        .append("#").append(result.index + 1).append(" ")
+                        .append(result.operation == null ? "operacao" : result.operation);
+                if (result.message != null && !result.message.isEmpty()) {
+                    summary.append(": ").append(result.message);
+                }
+            }
+            return summary.toString();
+        }
     }
 
     public static boolean applyEdits(String scId, String jsonResponse, String currentXmlName) {
         return applyEdits(scId, jsonResponse, currentXmlName, null);
     }
 
-    public static boolean applyEdits(String scId, String jsonResponse, String currentXmlName, String defaultContextName) {
+    public static boolean applyEdits(String scId, String jsonResponse, String currentXmlName,
+                                     String defaultContextName) {
+        SdbSnapshotManager.Snapshot transaction = null;
+        boolean batchStarted = false;
         try {
+            lastApplyError = "";
+            lastChangedXmlName = null;
+            lastApplyReport = new ApplyReport();
+            if (jsonResponse == null || jsonResponse.trim().isEmpty()) {
+                lastApplyError = "Resposta JSON vazia.";
+                return false;
+            }
+
+            EditResponse response = jsonResponse.trim().startsWith("[") ? null
+                    : GsonUtils.getGson().fromJson(jsonResponse, EditResponse.class);
+            String finalScId = scId != null ? scId : (response != null ? response.scId : null);
+            if (finalScId == null || finalScId.trim().isEmpty()) {
+                lastApplyError = "ID do projeto ausente.";
+                return false;
+            }
+
+            ArrayList<Operation> operations = parseOperations(jsonResponse, response);
+            List<ProjectEdit> legacyEdits = response != null ? response.edits : null;
+            boolean hasLegacy = legacyEdits != null && !legacyEdits.isEmpty();
+            SdbOperationValidator.Validation validation =
+                    SdbOperationValidator.validate(finalScId, operations, currentXmlName,
+                            defaultContextName);
+            lastApplyReport.total = operations.size();
+            lastApplyReport.corrections.addAll(validation.corrections);
+            lastApplyReport.affectedXmls.addAll(validation.affectedXmls);
+            lastApplyReport.affectedViewIds.addAll(validation.affectedViewIds);
+
+            if (!validation.isValid() && !hasLegacy) {
+                lastApplyError = "Preflight: " + android.text.TextUtils.join(" | ", validation.errors);
+                addValidationFailures(operations, validation.errors);
+                return false;
+            }
+
+            if (!hasLegacy && operations.size() == 1
+                    && SdbSkillOperationEngine.canHandle(operations.get(0).op)) {
+                Operation operation = operations.get(0);
+                boolean success = applyOperation(finalScId, operation, currentXmlName, defaultContextName);
+                OperationResult result = new OperationResult();
+                result.index = 0;
+                result.operation = operation.op;
+                result.success = success;
+                result.message = success ? "aplicada" : getLastApplyError();
+                lastApplyReport.operations.add(result);
+                lastApplyReport.applied = success ? 1 : 0;
+                lastApplyReport.success = success;
+                return success;
+            }
+
+            ArrayList<String> affectedXmls = new ArrayList<>(validation.affectedXmls);
+            String currentXml = toXmlFileName(currentXmlName);
+            if (currentXml != null && !affectedXmls.contains(currentXml)) affectedXmls.add(currentXml);
+            transaction = SdbSnapshotManager.takeSnapshot(finalScId, affectedXmls, jsonResponse);
+            beginBatch(finalScId);
+            batchStarted = true;
+
+            if (hasLegacy) {
+                for (ProjectEdit edit : legacyEdits) applyLegacyEdit(finalScId, edit);
+            }
+
+            for (int index = 0; index < operations.size(); index++) {
+                Operation operation = operations.get(index);
+                lastApplyError = "";
+                boolean success = applyOperation(finalScId, operation, currentXmlName, defaultContextName);
+                OperationResult result = new OperationResult();
+                result.index = index;
+                result.operation = operation != null ? operation.op : null;
+                result.success = success;
+                result.message = success ? "aplicada" : getLastApplyError();
+                lastApplyReport.operations.add(result);
+                if (!success) {
+                    lastApplyError = "Falha em #" + (index + 1) + " " + result.operation
+                            + (result.message == null || result.message.isEmpty() ? "" : ": " + result.message);
+                    lastApplyReport.rolledBack = SdbSnapshotManager.rollback(transaction);
+                    lastApplyReport.success = false;
+                    notifyProjectRefresh(finalScId);
+                    return false;
+                }
+                lastApplyReport.applied++;
+            }
+
+            boolean applied = hasLegacy || !operations.isEmpty();
+            lastApplyReport.success = applied;
+            if (applied) {
+                int nestedMethods = SdbProjectMutationEngine.repairNestedMethods(
+                        finalScId, defaultContextName);
+                if (nestedMethods > 0) {
+                    lastApplyReport.corrections.add(nestedMethods
+                            + " metodo(s) aninhado(s) convertido(s) em MoreBlock");
+                }
+                int normalizedMoreBlocks = SdbProjectMutationEngine.normalizeMoreBlocks(
+                        finalScId, defaultContextName);
+                if (normalizedMoreBlocks > 0) {
+                    lastApplyReport.corrections.add(normalizedMoreBlocks
+                            + " definicao(oes) de MoreBlock normalizada(s)/fundida(s)");
+                }
+                int moreBlockCalls = SdbProjectMutationEngine.synchronizeMoreBlockCalls(
+                        finalScId, defaultContextName);
+                if (moreBlockCalls > 0) {
+                    lastApplyReport.corrections.add(moreBlockCalls
+                            + " bloco(s) com chamadas de MoreBlock corrigidas para _nome()");
+                }
+                int visibleEvents = SdbProjectMutationEngine.synchronizeVisibleEvents(finalScId);
+                if (visibleEvents > 0) {
+                    lastApplyReport.corrections.add(visibleEvents
+                            + " evento(s) de codigo sincronizado(s) com o editor visual");
+                }
+                SdbProjectIntegrityGuard.Result integrity =
+                        SdbProjectIntegrityGuard.repairAndValidate(finalScId, affectedXmls);
+                if (!integrity.valid) {
+                    lastApplyError = "Pos-validacao: "
+                            + android.text.TextUtils.join(" | ", integrity.errors);
+                    lastApplyReport.rolledBack = SdbSnapshotManager.rollback(transaction);
+                    lastApplyReport.success = false;
+                    notifyProjectRefresh(finalScId);
+                    return false;
+                }
+                if (integrity.changed) {
+                    lastApplyReport.corrections.add("metadados visuais incompletos normalizados");
+                }
+                SdbSnapshotManager.commit(transaction, "CodFlow: " + operations.size() + " operacoes",
+                        lastApplyReport.toUserSummary());
+                notifyProjectRefresh(finalScId);
+            }
+            return applied;
+        } catch (Exception error) {
+            error.printStackTrace();
+            lastApplyError = error.getMessage() != null ? error.getMessage() : error.toString();
+            if (transaction != null) {
+                lastApplyReport.rolledBack = SdbSnapshotManager.rollback(transaction);
+                if (scId != null) notifyProjectRefresh(scId);
+            }
+            lastApplyReport.success = false;
+            return false;
+        } finally {
+            if (batchStarted) endBatch();
+        }
+    }
+
+    private static ArrayList<Operation> parseOperations(String jsonResponse, EditResponse response) {
+        ArrayList<Operation> operations = new ArrayList<>();
+        if (response != null && response.operations != null) operations.addAll(response.operations);
+        if (!operations.isEmpty()) return operations;
+        String trimmed = jsonResponse.trim();
+        if (trimmed.startsWith("[")) {
+            Operation[] parsed = GsonUtils.getGson().fromJson(trimmed, Operation[].class);
+            if (parsed != null) java.util.Collections.addAll(operations, parsed);
+        } else if (response == null || response.operations == null) {
+            Operation single = GsonUtils.getGson().fromJson(trimmed, Operation.class);
+            if (single != null && single.op != null) operations.add(single);
+        }
+        return operations;
+    }
+
+    private static void addValidationFailures(List<Operation> operations, List<String> errors) {
+        for (int errorIndex = 0; errorIndex < errors.size(); errorIndex++) {
+            String error = errors.get(errorIndex);
+            int operationIndex = validationOperationIndex(error, errorIndex);
+            OperationResult result = new OperationResult();
+            result.index = operationIndex;
+            result.operation = operationIndex < operations.size() && operations.get(operationIndex) != null
+                    ? operations.get(operationIndex).op : "preflight";
+            result.success = false;
+            int messageStart = error != null && error.startsWith("#") ? error.indexOf(' ') : -1;
+            result.message = messageStart > 0 ? error.substring(messageStart + 1) : error;
+            lastApplyReport.operations.add(result);
+        }
+    }
+
+    private static int validationOperationIndex(String error, int fallback) {
+        if (error == null || !error.startsWith("#")) return fallback;
+        int separator = error.indexOf(' ');
+        if (separator <= 1) return fallback;
+        try {
+            return Math.max(0, Integer.parseInt(error.substring(1, separator)) - 1);
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean applyEditsLegacyInternal(String scId, String jsonResponse,
+                                                    String currentXmlName, String defaultContextName) {
+        try {
+            lastApplyError = "";
+            lastChangedXmlName = null;
             // First try as a full response with operations array
             EditResponse response = GsonUtils.getGson().fromJson(jsonResponse, EditResponse.class);
             boolean applied = false;
+            boolean failed = false;
 
             // Engine-level application
 
@@ -126,10 +399,13 @@ public class SdbEditEngine {
                         if (applyOperation(finalScId, op, currentXmlName, defaultContextName)) {
                             applied = true;
                         } else if (op.op != null) {
-                            opErrors.add(op.op);
+                            failed = true;
+                            String detail = getLastApplyError();
+                            opErrors.add(op.op + (detail.isEmpty() ? "" : ": " + detail));
                         }
                     }
                     if (!opErrors.isEmpty()) {
+                        lastApplyError = "Falha nas operacoes: " + android.text.TextUtils.join(" | ", opErrors);
                         pro.sketchware.utility.SketchwareUtil.toastError(
                             "Falha nas operações: " + android.text.TextUtils.join(", ", opErrors));
                     }
@@ -145,6 +421,8 @@ public class SdbEditEngine {
                          for (Operation op : ops) {
                              if (applyOperation(scId, op, currentXmlName, defaultContextName)) {
                                  applied = true;
+                             } else {
+                                 failed = true;
                              }
                          }
                      }
@@ -158,14 +436,27 @@ public class SdbEditEngine {
                 }
             }
 
-            if (applied) {
+            if (applied && !failed) {
                 notifyProjectRefresh(scId);
             }
-            return applied;
+            return applied && !failed;
         } catch (Exception e) {
             e.printStackTrace();
+            lastApplyError = e.getMessage() != null ? e.getMessage() : e.toString();
             return false;
         }
+    }
+
+    public static String getLastApplyError() {
+        return lastApplyError == null ? "" : lastApplyError;
+    }
+
+    public static ApplyReport getLastApplyReport() {
+        return lastApplyReport;
+    }
+
+    static void setLastApplyError(String error) {
+        lastApplyError = error == null ? "" : error;
     }
 
     private static void notifyProjectRefresh(String scId) {
@@ -173,22 +464,207 @@ public class SdbEditEngine {
     }
 
     private static void notifyProjectRefresh(String scId, String eventKey) {
+        synchronized (SdbEditEngine.class) {
+            if (batchDepth > 0) {
+                batchRefreshRequested = true;
+                batchRefreshScId = scId != null ? scId : batchRefreshScId;
+                batchRefreshEventKey = eventKey != null ? eventKey : batchRefreshEventKey;
+                return;
+            }
+        }
+        sendProjectRefresh(scId, eventKey);
+    }
+
+    private static void sendProjectRefresh(String scId, String eventKey) {
         android.content.Context context = pro.sketchware.SketchApplication.getContext();
         if (context != null) {
             android.content.Intent intent = new android.content.Intent(ACTION_REFRESH_PROJECT);
             intent.putExtra("sc_id", scId);
             if (eventKey != null) intent.putExtra("event_key", eventKey);
+            if (lastChangedXmlName != null) intent.putExtra("xml_name", lastChangedXmlName);
+            if (lastApplyReport != null && !lastApplyReport.affectedViewIds.isEmpty()) {
+                intent.putStringArrayListExtra("changed_view_ids",
+                        new ArrayList<>(lastApplyReport.affectedViewIds));
+            }
             context.sendBroadcast(intent);
         }
     }
 
+    private static synchronized void beginBatch(String scId) {
+        batchDepth++;
+        if (batchDepth == 1) {
+            batchRefreshRequested = false;
+            batchRefreshScId = scId;
+            batchRefreshEventKey = null;
+        }
+    }
+
+    private static void endBatch() {
+        String scId = null;
+        String eventKey = null;
+        boolean dispatch = false;
+        synchronized (SdbEditEngine.class) {
+            if (batchDepth > 0) batchDepth--;
+            if (batchDepth == 0) {
+                dispatch = batchRefreshRequested;
+                scId = batchRefreshScId;
+                eventKey = batchRefreshEventKey;
+                batchRefreshRequested = false;
+                batchRefreshScId = null;
+                batchRefreshEventKey = null;
+            }
+        }
+        if (dispatch) sendProjectRefresh(scId, eventKey);
+    }
+
+    private static void markLayoutChanged(String xmlName) {
+        lastChangedXmlName = toXmlFileName(xmlName);
+    }
+
+    private static String toXmlFileName(String xmlName) {
+        if (xmlName == null) return null;
+        String clean = xmlName.trim();
+        if (clean.isEmpty()) return null;
+        return clean.endsWith(".xml") ? clean : clean + ".xml";
+    }
+
+    private static String toXmlBaseName(String xmlName) {
+        String normalized = toXmlFileName(xmlName);
+        return normalized == null ? null : normalized.substring(0, normalized.length() - 4);
+    }
+
+    /** Prefer the canonical filename key, while still reading old agent-created entries. */
+    private static ViewBean findView(String scId, String xmlName, String viewId) {
+        if (xmlName == null || viewId == null) return null;
+        String normalized = toXmlFileName(xmlName);
+        ViewBean view = jC.a(scId).c(normalized, viewId);
+        if (view == null) view = jC.a(scId).c(toXmlBaseName(normalized), viewId);
+        return view;
+    }
+
+    private static void replaceViewIdInBlock(BlockBean block, String oldId, String newId) {
+        if (block == null) return;
+        block.spec = replaceIdentifier(block.spec, oldId, newId);
+        if (block.parameters != null) {
+            for (int index = 0; index < block.parameters.size(); index++) {
+                block.parameters.set(index,
+                        replaceIdentifier(block.parameters.get(index), oldId, newId));
+            }
+        }
+    }
+
+    private static String replaceIdentifier(String value, String oldId, String newId) {
+        if (value == null || value.isEmpty()) return value;
+        return value.replaceAll("(?<![A-Za-z0-9_])" + java.util.regex.Pattern.quote(oldId)
+                        + "(?![A-Za-z0-9_])",
+                java.util.regex.Matcher.quoteReplacement(newId));
+    }
+
+    private static boolean failOperation(String message) {
+        lastApplyError = message;
+        android.util.Log.w("SdbEditEngine", message);
+        return false;
+    }
+
+    public static boolean applyLayoutXml(String scId, String xmlName, String xmlContent) {
+        if (scId == null || xmlName == null || xmlContent == null) return false;
+
+        xmlContent = normalizeLayoutXml(xmlContent);
+        if (xmlContent.isEmpty()) {
+            return failOperation("XML do layout esta vazio.");
+        }
+
+        String contentLower = xmlContent.toLowerCase();
+        if (contentLower.contains("<shape") || contentLower.contains("<selector")
+                || contentLower.contains("<layer-list") || contentLower.contains("<gradient")) {
+            lastApplyError = "Bloqueado: IA tentou salvar Drawable como Layout.";
+            pro.sketchware.utility.SketchwareUtil.toastError(lastApplyError);
+            return false;
+        }
+
+        String normXml = toXmlFileName(xmlName);
+        if (normXml == null) return failOperation("Nome do layout invalido.");
+        String baseXmlName = toXmlBaseName(normXml);
+
+        try {
+            // Parse before changing project metadata. A malformed AI response must
+            // never leave an empty/ghost screen registered in the project.
+            pro.sketchware.tools.ViewBeanParser parser = new pro.sketchware.tools.ViewBeanParser(xmlContent);
+            parser.setSkipRoot(true);
+            ArrayList<ViewBean> parsedLayout = parser.parse();
+            android.util.Pair<String, java.util.Map<String, String>> root = parser.getRootAttributes();
+            if (root == null || root.first == null || root.first.trim().isEmpty()) {
+                return failOperation("XML invalido: informe uma unica ViewGroup raiz, por exemplo <LinearLayout ...>.");
+            }
+
+            if (jC.b(scId).b(normXml) == null) {
+                com.besome.sketch.beans.ProjectFileBean newFile = new com.besome.sketch.beans.ProjectFileBean(
+                    com.besome.sketch.beans.ProjectFileBean.PROJECT_FILE_TYPE_CUSTOM_VIEW,
+                    baseXmlName
+                );
+                jC.b(scId).a(newFile);
+                jC.b(scId).j();
+            }
+
+            pro.sketchware.managers.inject.InjectRootLayoutManager rootMgr =
+                    new pro.sketchware.managers.inject.InjectRootLayoutManager(scId);
+            rootMgr.set(normXml, pro.sketchware.managers.inject.InjectRootLayoutManager.toRoot(root));
+
+            com.besome.sketch.beans.HistoryViewBean historyBean = new com.besome.sketch.beans.HistoryViewBean();
+            ArrayList<ViewBean> existing = jC.a(scId).d(normXml);
+            if (existing == null) existing = new ArrayList<>();
+            historyBean.actionOverride(parsedLayout, existing);
+            a.a.a.cC historyManager = a.a.a.cC.c(scId);
+            if (!historyManager.c.containsKey(normXml)) {
+                historyManager.e(normXml);
+            }
+            historyManager.a(normXml);
+            historyManager.a(normXml, historyBean);
+
+            // Remove the legacy key written by older CodFlow builds. Keeping both
+            // keys makes widget operations update a hidden copy of the screen.
+            jC.a(scId).c.remove(baseXmlName);
+            jC.a(scId).c.put(normXml, parsedLayout);
+            SdbProjectIntegrityGuard.saveProjectData(scId);
+            markLayoutChanged(normXml);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            lastApplyError = "XML invalido em '" + baseXmlName + "': "
+                    + (e.getMessage() != null ? e.getMessage() : e.toString());
+            return false;
+        }
+    }
+
+    /** Accepts XML returned in a Markdown fence without accepting arbitrary prose. */
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private static String normalizeLayoutXml(String xml) {
+        String clean = xml == null ? "" : xml.trim();
+        if (clean.startsWith("```")) {
+            int firstNewline = clean.indexOf('\n');
+            int lastFence = clean.lastIndexOf("```");
+            if (firstNewline >= 0 && lastFence > firstNewline) {
+                clean = clean.substring(firstNewline + 1, lastFence).trim();
+            }
+        }
+        int xmlStart = clean.indexOf('<');
+        if (xmlStart > 0) clean = clean.substring(xmlStart);
+        return clean;
+    }
+
     private static void applyLegacyEdit(String scId, ProjectEdit edit) {
         if ("block".equals(edit.type) || edit.type == null) {
-            if (edit.blocks != null) {
+            // A null name would become a null key in the project data and only blow up
+            // later, when Sketchware serializes it on save.
+            if (edit.blocks != null && !isBlank(edit.javaName) && !isBlank(edit.eventName)) {
                 jC.a(scId).a(edit.javaName, edit.eventName, new ArrayList<>(edit.blocks));
             }
         } else if ("layout".equals(edit.type)) {
-            if (edit.view != null && edit.xmlName != null) {
+            if (edit.view != null && !isBlank(edit.xmlName)) {
+                if (isBlank(edit.view.parent)) edit.view.parent = "root";
                 jC.a(scId).a(edit.xmlName, edit.view);
             }
         } else if ("file".equals(edit.type)) {
@@ -200,6 +676,63 @@ public class SdbEditEngine {
 
     private static boolean applyOperation(String scId, Operation op, String currentXmlName, String defaultContextName) {
         if (op == null || op.op == null) return false;
+        if (SdbSkillOperationEngine.canHandle(op.op)) {
+            SdbProjectMutationEngine.Result result = SdbSkillOperationEngine.apply(scId, op);
+            if (result != null && result.message != null && !result.message.isEmpty()) {
+                if (result.success) android.util.Log.d("SdbEditEngine", result.message);
+                else lastApplyError = result.message;
+            }
+            return result != null && result.success;
+        }
+        if (SdbProjectMutationEngine.canHandle(op.op)) {
+            SdbProjectMutationEngine.Result result = SdbProjectMutationEngine.apply(scId, op, defaultContextName);
+            if (result != null && result.message != null && !result.message.isEmpty()) {
+                if (result.success) {
+                    android.util.Log.d("SdbEditEngine", result.message);
+                } else {
+                    lastApplyError = result.message;
+                    pro.sketchware.utility.SketchwareUtil.toastError(result.message);
+                }
+            }
+            return result != null && result.success;
+        }
+
+        if ("edit_activity_layout".equals(op.op)) {
+            op.op = "edit_layout_xml";
+        }
+
+        if ("add_image".equals(op.op) || "add_image_view".equals(op.op) || "add_image_widget".equals(op.op)) {
+            op.op = "add_widget";
+            if (op.data == null) op.data = new OperationData();
+            op.data.widget_type = ViewBean.VIEW_TYPE_WIDGET_IMAGEVIEW;
+            if (op.data.widget_id == null && op.data.id == null) op.data.widget_id = "image_sdb";
+            if (op.data.attributes == null) op.data.attributes = new java.util.HashMap<>();
+            op.data.attributes.putIfAbsent("android:layout_width", "match_parent");
+            op.data.attributes.putIfAbsent("android:layout_height", "180dp");
+            op.data.attributes.putIfAbsent("android:scaleType", "fitCenter");
+            op.data.attributes.putIfAbsent("android:adjustViewBounds", "true");
+            if (op.data.drawable_name != null && !op.data.drawable_name.trim().isEmpty()) {
+                op.data.attributes.putIfAbsent("android:src", "@drawable/" + op.data.drawable_name.replace(".xml", ""));
+            }
+        }
+
+        if (SdbDirectFileEngine.isDirectOperation(op.op)) {
+            SdbDirectFileEngine.Result result = SdbDirectFileEngine.apply(scId, op);
+            if (result != null && result.message != null && !result.message.isEmpty()) {
+                if (result.success) {
+                    android.util.Log.d("SdbEditEngine", result.message);
+                } else {
+                    lastApplyError = result.message;
+                    pro.sketchware.utility.SketchwareUtil.toastError(result.message);
+                }
+            }
+            return result != null && result.success;
+        }
+
+        if ("create_activity".equals(op.op)) {
+            return createNativeActivity(scId, op);
+        }
+
         if ("inject_code".equals(op.op) || "add_direct_code".equals(op.op)) {
             OperationData data = op.data;
             if (data == null) return false;
@@ -230,7 +763,11 @@ public class SdbEditEngine {
             }
             
             if (javaName != null && !javaName.isEmpty()) {
-                addEventToActivityAndInjectCode(scId, javaName, eventName, code);
+                SdbProjectMutationEngine.Result result = SdbProjectMutationEngine.injectCode(scId, javaName, eventName, code, false);
+                if (result == null || !result.success) {
+                    lastApplyError = result != null ? result.message : "Falha ao injetar codigo.";
+                    return false;
+                }
                 return true;
             }
             return false;
@@ -254,7 +791,7 @@ public class SdbEditEngine {
                 }
                 // Clear the body blocks
                 jC.a(scId).a(javaName, mbName + "_moreBlock", new java.util.ArrayList<>());
-                jC.a(scId).k();
+                SdbProjectIntegrityGuard.saveProjectData(scId);
                 pro.sketchware.utility.SketchwareUtil.toast("MoreBlock '" + mbName + "' removido.");
                 return true;
             } catch (Exception e) {
@@ -678,19 +1215,22 @@ public class SdbEditEngine {
                     images.add(resource);
                     a.a.a.jC.d(scId).b(images);
                     a.a.a.jC.d(scId).y(); // Save project metadata
-                    a.a.a.jC.a(scId).k(); // Refresh project resources
+                    SdbProjectIntegrityGuard.saveProjectData(scId); // Refresh project resources
                 }
 
                 // Auto-apply to target view if requested
                 if (data.target_view_id != null) {
                     String xmlContext = data.target_xml_name != null ? data.target_xml_name : currentXmlName;
                     if (xmlContext != null) {
-                        String baseTarget = xmlContext.replace(".xml", "");
-                        com.besome.sketch.beans.ViewBean targetBean = a.a.a.jC.a(scId).c(baseTarget, data.target_view_id);
+                        String targetLayout = toXmlFileName(SdbProjectMutationEngine.resolveXmlName(
+                                scId, xmlContext, currentXmlName));
+                        com.besome.sketch.beans.ViewBean targetBean = a.a.a.jC.a(scId).c(targetLayout, data.target_view_id);
                         if (targetBean != null) {
                             java.util.Map<String, String> attrs = new java.util.HashMap<>();
                             attrs.put("android:src", "@drawable/" + finalName);
                             new pro.sketchware.tools.ViewBeanFactory(targetBean).applyAttributes(attrs);
+                            SdbProjectIntegrityGuard.saveProjectData(scId);
+                            markLayoutChanged(targetLayout);
                             pro.sketchware.utility.SketchwareUtil.toast("Ícone aplicado em '" + data.target_view_id + "'");
                         }
                     }
@@ -707,16 +1247,17 @@ public class SdbEditEngine {
 
         if ("add_widget".equals(op.op)) {
             OperationData data = op.data;
-            String xmlName = op.xmlName != null ? op.xmlName : data.view_id;
-            if (xmlName == null && currentXmlName != null) {
-                xmlName = currentXmlName;
-            } else if (xmlName != null && xmlName.toLowerCase().contains("activity") && currentXmlName != null) {
-                xmlName = currentXmlName; // AI hallucinated "MainActivity"
-            }
+            if (data == null) return failOperation("add_widget precisa de data.");
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name,
+                    currentXmlName);
             String finalId = data.widget_id != null ? data.widget_id : data.id;
             int finalType = data.widget_type != -1 ? data.widget_type : data.type;
+            String normXml = toXmlFileName(xmlName);
             
-            if (xmlName == null || finalId == null) return false;
+            if (normXml == null || finalId == null || finalId.trim().isEmpty()) {
+                return failOperation("add_widget precisa de xmlName e widget_id.");
+            }
             
             if (finalType == -1) finalType = 0; // Default to LinearLayout
             
@@ -724,8 +1265,11 @@ public class SdbEditEngine {
             view.id = finalId;
             view.type = finalType;
             
-            ArrayList<ViewBean> siblings = jC.a(scId).d(xmlName);
+            ArrayList<ViewBean> siblings = jC.a(scId).d(normXml);
             boolean emptyScreen = (siblings == null || siblings.isEmpty());
+            if (findView(scId, normXml, finalId) != null) {
+                return failOperation("Ja existe um widget com id '" + finalId + "' em " + normXml + ". Use update_widget.");
+            }
             
             if (data.parent_id != null) {
                 view.parent = data.parent_id;
@@ -744,7 +1288,7 @@ public class SdbEditEngine {
             }
             
             try {
-                ViewBean parentBean = jC.a(scId).c(xmlName, view.parent);
+                ViewBean parentBean = findView(scId, normXml, view.parent);
                 if (parentBean != null) {
                     view.parentType = parentBean.type;
                     view.preParentType = parentBean.type;
@@ -752,8 +1296,7 @@ public class SdbEditEngine {
                     view.parentType = 0; // LinearLayout
                     view.preParentType = 0;
                 } else {
-                    view.parentType = 0;
-                    view.preParentType = 0;
+                    return failOperation("Parent '" + view.parent + "' nao existe em " + normXml + ".");
                 }
             } catch (Exception e) {
                 view.parentType = 0;
@@ -807,46 +1350,113 @@ public class SdbEditEngine {
                 new pro.sketchware.tools.ViewBeanFactory(view).applyAttributes(attrs);
             }
 
-            jC.a(scId).a(xmlName, view);
+            jC.a(scId).a(normXml, view);
+            SdbProjectIntegrityGuard.saveProjectData(scId);
+            if (findView(scId, normXml, finalId) == null) {
+                return failOperation("O widget '" + finalId + "' nao foi persistido em " + normXml + ".");
+            }
+            markLayoutChanged(normXml);
+            return true;
+        } else if ("rename_widget".equals(op.op)) {
+            OperationData data = op.data;
+            if (data == null) return failOperation("rename_widget precisa de data.");
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name, currentXmlName);
+            String normXml = toXmlFileName(xmlName);
+            String oldId = data.widget_id != null ? data.widget_id : data.id;
+            String newId = data.new_id != null ? data.new_id : data.name;
+            if (normXml == null || oldId == null || newId == null) {
+                return failOperation("rename_widget precisa de xmlName, widget_id e new_id.");
+            }
+            if (!newId.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+                return failOperation("new_id invalido: " + newId);
+            }
+            ViewBean target = findView(scId, normXml, oldId);
+            if (target == null) return failOperation("Widget '" + oldId + "' nao encontrado em " + normXml + ".");
+            if (findView(scId, normXml, newId) != null) {
+                return failOperation("Ja existe um widget com id '" + newId + "' em " + normXml + ".");
+            }
+
+            ArrayList<ViewBean> layout = jC.a(scId).d(normXml);
+            if (layout != null) {
+                for (ViewBean bean : layout) {
+                    if (oldId.equals(bean.parent)) bean.parent = newId;
+                    if (oldId.equals(bean.preParent)) bean.preParent = newId;
+                }
+            }
+            target.id = newId;
+            target.preId = newId;
+
+            ProjectFileBean file = jC.b(scId).b(normXml);
+            if (file != null && file.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY) {
+                String javaName = file.getJavaName();
+                java.util.HashMap<String, ArrayList<BlockBean>> blocksByEvent = jC.a(scId).b(javaName);
+                ArrayList<com.besome.sketch.beans.EventBean> events = jC.a(scId).g(javaName);
+                if (events != null) {
+                    for (com.besome.sketch.beans.EventBean event : events) {
+                        if (event.eventType != com.besome.sketch.beans.EventBean.EVENT_TYPE_VIEW
+                                || !oldId.equals(event.targetId)) continue;
+                        String oldKey = event.getEventKey();
+                        event.targetId = newId;
+                        String newKey = event.getEventKey();
+                        if (blocksByEvent != null && blocksByEvent.containsKey(oldKey)) {
+                            blocksByEvent.put(newKey, blocksByEvent.remove(oldKey));
+                        }
+                    }
+                }
+            }
+
+            // References may also exist in MoreBlocks or another screen's logic.
+            for (ProjectFileBean projectFile : jC.b(scId).b()) {
+                java.util.HashMap<String, ArrayList<BlockBean>> blocksByEvent =
+                        jC.a(scId).b(projectFile.getJavaName());
+                if (blocksByEvent == null) continue;
+                for (ArrayList<BlockBean> blocks : blocksByEvent.values()) {
+                    if (blocks == null) continue;
+                    for (BlockBean block : blocks) replaceViewIdInBlock(block, oldId, newId);
+                }
+            }
+
+            SdbProjectIntegrityGuard.saveProjectData(scId);
+            markLayoutChanged(normXml);
             return true;
         } else if ("update_widget".equals(op.op)) {
             OperationData data = op.data;
-            String xmlName = op.xmlName != null ? op.xmlName : data.view_id;
-            if (xmlName == null && currentXmlName != null) xmlName = currentXmlName;
-            if (xmlName == null || data.widget_id == null) return false;
-            
-            // Normalize XML names for comparison
-            String normXml = xmlName.endsWith(".xml") ? xmlName : xmlName + ".xml";
-            String normCurrent = (currentXmlName != null) ? (currentXmlName.endsWith(".xml") ? currentXmlName : currentXmlName + ".xml") : null;
-            
-            if (normCurrent != null && !normXml.equalsIgnoreCase(normCurrent)) {
-                normXml = normCurrent; // Prefer active context if they differ but match roughly
+            if (data == null) return failOperation("update_widget precisa de data.");
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name,
+                    currentXmlName);
+            String widgetId = data.widget_id != null ? data.widget_id : data.id;
+            if (xmlName == null || widgetId == null || data.attributes == null || data.attributes.isEmpty()) {
+                return failOperation("update_widget precisa de xmlName, widget_id e attributes.");
             }
 
             try {
-                ViewBean existing = jC.a(scId).c(normXml, data.widget_id);
-                if (existing != null && data.attributes != null) {
+                ViewBean existing = findView(scId, xmlName, widgetId);
+                if (existing != null) {
                     new pro.sketchware.tools.ViewBeanFactory(existing).applyAttributes(data.attributes);
+                    SdbProjectIntegrityGuard.saveProjectData(scId);
+                    markLayoutChanged(toXmlFileName(xmlName));
                     return true;
                 }
-            } catch (Exception e) {}
-            return false;
+            } catch (Exception e) {
+                return failOperation("Nao foi possivel atualizar '" + widgetId + "': " + e.getMessage());
+            }
+            return failOperation("Widget '" + widgetId + "' nao encontrado em " + xmlName + ".");
         } else if ("remove_widget".equals(op.op)) {
             OperationData data = op.data;
-            String xmlName = op.xmlName != null ? op.xmlName : data.view_id;
-            if (xmlName == null && currentXmlName != null) xmlName = currentXmlName;
-            if (xmlName == null || data.widget_id == null) return false;
+            if (data == null) return failOperation("remove_widget precisa de data.");
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name,
+                    currentXmlName);
+            String widgetId = data.widget_id != null ? data.widget_id : data.id;
+            if (xmlName == null || widgetId == null) return failOperation("remove_widget precisa de xmlName e widget_id.");
             
             // Normalize XML names for comparison
-            String normXml = xmlName.endsWith(".xml") ? xmlName : xmlName + ".xml";
-            String normCurrent = (currentXmlName != null) ? (currentXmlName.endsWith(".xml") ? currentXmlName : currentXmlName + ".xml") : null;
-
-            if (normCurrent != null && !normXml.equalsIgnoreCase(normCurrent)) {
-                normXml = normCurrent;
-            }
+            String normXml = toXmlFileName(xmlName);
 
             try {
-                ViewBean existing = jC.a(scId).c(normXml, data.widget_id);
+                ViewBean existing = findView(scId, xmlName, widgetId);
                 if (existing != null) {
                     ProjectFileBean fileBean = null;
                     for (ProjectFileBean pfb : jC.b(scId).b()) {
@@ -857,68 +1467,25 @@ public class SdbEditEngine {
                     }
                     if (fileBean != null) {
                         jC.a(scId).a(fileBean, existing);
+                        SdbProjectIntegrityGuard.saveProjectData(scId);
+                        markLayoutChanged(normXml);
                         return true;
                     }
                 }
-            } catch (Exception e) {}
-            return false;
+            } catch (Exception e) {
+                return failOperation("Nao foi possivel remover '" + widgetId + "': " + e.getMessage());
+            }
+            return failOperation("Widget '" + widgetId + "' nao encontrado em " + xmlName + ".");
         } else if ("edit_layout_xml".equals(op.op)) {
             OperationData data = op.data;
-            String xmlName = op.xmlName != null ? op.xmlName : data.view_id;
-            if (xmlName == null && currentXmlName != null) xmlName = currentXmlName;
-            if (xmlName == null || data.xml_content == null) return false;
-
-            // Safety check: Don't allow Drawable content in a Layout operation
-            String contentLower = data.xml_content.toLowerCase();
-            if (contentLower.contains("<shape") || contentLower.contains("<selector") || contentLower.contains("<layer-list") || contentLower.contains("<gradient")) {
-                 pro.sketchware.utility.SketchwareUtil.toastError("Bloqueado: IA tentou salvar Drawable como Layout. Corrigindo...");
-                 return false;
+            if (data == null) return failOperation("edit_layout_xml precisa de data.");
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name,
+                    currentXmlName);
+            if (xmlName == null || data.xml_content == null || data.xml_content.trim().isEmpty()) {
+                return failOperation("edit_layout_xml precisa de xmlName e xml_content.");
             }
-            
-            String normXml = xmlName.endsWith(".xml") ? xmlName : xmlName + ".xml";
-            String baseXmlName = normXml.replace(".xml", "");
-            
-            try {
-                // Resource Manager / Professional Design support:
-                // If the file doesn't exist, create it as a Custom View
-                if (jC.b(scId).b(normXml) == null) {
-                    com.besome.sketch.beans.ProjectFileBean newFile = new com.besome.sketch.beans.ProjectFileBean(
-                        com.besome.sketch.beans.ProjectFileBean.PROJECT_FILE_TYPE_CUSTOM_VIEW,
-                        baseXmlName
-                    );
-                    jC.b(scId).a(newFile);
-                    jC.b(scId).j(); // Save project metadata changes
-                }
-
-                // Infallible Mode: Parse entire XML into ViewBeans, just like Direct XML Editor
-                pro.sketchware.tools.ViewBeanParser parser = new pro.sketchware.tools.ViewBeanParser(data.xml_content);
-                parser.setSkipRoot(true);
-                ArrayList<ViewBean> parsedLayout = parser.parse();
-                android.util.Pair<String, java.util.Map<String, String>> root = parser.getRootAttributes();
-
-                // 1. Update InjectRootLayoutManager for root attributes
-                pro.sketchware.managers.inject.InjectRootLayoutManager rootMgr = new pro.sketchware.managers.inject.InjectRootLayoutManager(scId);
-                rootMgr.set(baseXmlName, pro.sketchware.managers.inject.InjectRootLayoutManager.toRoot(root));
-
-                // 2. Prepare History/Undo
-                com.besome.sketch.beans.HistoryViewBean historyBean = new com.besome.sketch.beans.HistoryViewBean();
-                ArrayList<ViewBean> existing = jC.a(scId).d(baseXmlName);
-                if (existing == null) existing = new ArrayList<>();
-                historyBean.actionOverride(parsedLayout, existing);
-                a.a.a.cC historyManager = a.a.a.cC.c(scId);
-                if (!historyManager.c.containsKey(baseXmlName)) {
-                    historyManager.e(baseXmlName);
-                }
-                historyManager.a(baseXmlName);
-                historyManager.a(baseXmlName, historyBean);
-
-                // 3. Replace the view beans in the project model
-                jC.a(scId).c.put(baseXmlName, parsedLayout);
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return false;
+            return applyLayoutXml(scId, xmlName, data.xml_content);
         }
 
         // ── Add / register a view event (onClick, onLongClick, etc.) ────────
@@ -934,10 +1501,11 @@ public class SdbEditEngine {
             String code = data.code != null ? data.code : "";
 
             // Resolve XML name (layout)
-            String xmlName = op.xmlName != null ? op.xmlName
-                    : (data.target_xml_name != null ? data.target_xml_name : currentXmlName);
+            String xmlName = SdbProjectMutationEngine.resolveXmlName(scId,
+                    op.xmlName != null ? op.xmlName : data.target_xml_name,
+                    currentXmlName);
             if (xmlName == null) return false;
-            String normXml = xmlName.replace(".xml", "");
+            String normXml = toXmlFileName(xmlName);
 
             // Resolve Java name (activity)
             String javaName = data.java_name != null ? data.java_name : defaultContextName;
@@ -1006,7 +1574,10 @@ public class SdbEditEngine {
             if (data == null) return false;
             String javaName = data.java_name != null ? data.java_name : defaultContextName;
             if (javaName == null || javaName.trim().isEmpty()) return false;
-            javaName = javaName.endsWith(".java") ? javaName : javaName + ".java";
+            javaName = resolveJavaName(scId, javaName);
+            if (javaName == null || javaName.trim().isEmpty()) {
+                return failOperation("Activity nao encontrada para declarar variavel.");
+            }
             String varName = data.name != null ? data.name.trim() : null;
             if (varName == null || varName.isEmpty()) return false;
             String typeStr = (data.var_type != null ? data.var_type : (data.code != null ? data.code : "String")).trim().toLowerCase();
@@ -1018,8 +1589,22 @@ public class SdbEditEngine {
                 default: typeConst = 2; break; // String
             }
             try {
-                jC.a(scId).f(javaName, typeConst, varName);
-                jC.a(scId).k();
+                for (int existingType = 0; existingType <= 3; existingType++) {
+                    java.util.ArrayList<String> existing = jC.a(scId).e(javaName, existingType);
+                    if (existing != null && existing.contains(varName)) {
+                        if (existingType == typeConst) return true;
+                        lastApplyError = "Variavel " + varName + " ja existe com outro tipo.";
+                        return false;
+                    }
+                }
+                // Same API used by LogicEditorActivity when the user adds a variable.
+                jC.a(scId).c(javaName, typeConst, varName);
+                SdbProjectIntegrityGuard.saveProjectData(scId);
+                java.util.ArrayList<String> persisted = jC.a(scId).e(javaName, typeConst);
+                if (persisted == null || !persisted.contains(varName)) {
+                    lastApplyError = "A variavel " + varName + " nao foi persistida no modelo.";
+                    return false;
+                }
             } catch (Exception e) {
                 android.util.Log.e("SdbEditEngine", "add_variable failed", e);
                 return false;
@@ -1044,8 +1629,22 @@ public class SdbEditEngine {
                 default: typeConst = 2; break; // String
             }
             try {
-                jC.a(scId).e(javaName, typeConst, listName);
-                jC.a(scId).k();
+                for (int existingType = 1; existingType <= 3; existingType++) {
+                    java.util.ArrayList<String> existing = jC.a(scId).d(javaName, existingType);
+                    if (existing != null && existing.contains(listName)) {
+                        if (existingType == typeConst) return true;
+                        lastApplyError = "Lista " + listName + " ja existe com outro tipo.";
+                        return false;
+                    }
+                }
+                // Same API used by LogicEditorActivity when the user adds a list.
+                jC.a(scId).b(javaName, typeConst, listName);
+                SdbProjectIntegrityGuard.saveProjectData(scId);
+                java.util.ArrayList<String> persisted = jC.a(scId).d(javaName, typeConst);
+                if (persisted == null || !persisted.contains(listName)) {
+                    lastApplyError = "A lista " + listName + " nao foi persistida no modelo.";
+                    return false;
+                }
             } catch (Exception e) {
                 android.util.Log.e("SdbEditEngine", "add_list failed", e);
                 return false;
@@ -1061,8 +1660,9 @@ public class SdbEditEngine {
             String xmlName = op.xmlName;
             if (xmlName == null && data.target_xml_name != null) xmlName = data.target_xml_name;
             if (xmlName == null) xmlName = currentXmlName;
+            xmlName = SdbProjectMutationEngine.resolveXmlName(scId, xmlName, currentXmlName);
             if (xmlName == null) return false;
-            String normXml = xmlName.endsWith(".xml") ? xmlName : xmlName + ".xml";
+            String normXml = toXmlFileName(xmlName);
 
             // View ID of the ListView widget
             String viewId = data.view_id != null ? data.view_id : (data.widget_id != null ? data.widget_id : data.id);
@@ -1090,7 +1690,8 @@ public class SdbEditEngine {
                     jC.b(scId).j(); // persist file registry (same as edit_layout_xml does)
                 }
                 // Persist the ViewBean change (customView field)
-                jC.a(scId).k();
+                SdbProjectIntegrityGuard.saveProjectData(scId);
+                markLayoutChanged(normXml);
             } catch (Exception e) {
                 android.util.Log.e("SdbEditEngine", "set_custom_view failed", e);
                 return false;
@@ -1126,6 +1727,11 @@ public class SdbEditEngine {
                     ? data.file_name.substring(data.file_name.lastIndexOf('.') + 1)
                     : data.file_name;
             if (!simpleName.endsWith(".java")) simpleName += ".java";
+            if (SdbProjectMutationEngine.isGeneratedActivityJava(scId, simpleName)) {
+                lastApplyError = "Bloqueado: " + simpleName + " e Activity gerada pelo Sketchware. Use inject_code/edit_activity_layout.";
+                pro.sketchware.utility.SketchwareUtil.toastError(lastApplyError);
+                return false;
+            }
             String javaDir = new pro.sketchware.utility.FilePathUtil().getPathJava(scId);
             new java.io.File(javaDir).mkdirs();
             String code = data.content != null ? data.content : "";
@@ -1140,6 +1746,11 @@ public class SdbEditEngine {
                     ? data.file_name.substring(data.file_name.lastIndexOf('.') + 1)
                     : data.file_name;
             if (!simpleName.endsWith(".java")) simpleName += ".java";
+            if (SdbProjectMutationEngine.isGeneratedActivityJava(scId, simpleName)) {
+                lastApplyError = "Bloqueado: " + simpleName + " e Activity gerada pelo Sketchware. Use inject_code/edit_activity_layout.";
+                pro.sketchware.utility.SketchwareUtil.toastError(lastApplyError);
+                return false;
+            }
             String javaDir = new pro.sketchware.utility.FilePathUtil().getPathJava(scId);
             new java.io.File(javaDir + java.io.File.separator + simpleName).delete();
             return true;
@@ -1152,7 +1763,10 @@ public class SdbEditEngine {
 
             String javaName = data.java_name != null ? data.java_name : defaultContextName;
             if (javaName == null || javaName.trim().isEmpty()) return false;
-            javaName = javaName.endsWith(".java") ? javaName : javaName + ".java";
+            javaName = resolveJavaName(scId, javaName);
+            if (javaName == null || javaName.trim().isEmpty()) {
+                return failOperation("Activity nao encontrada para adicionar componente.");
+            }
 
             String componentId = data.name != null ? data.name.trim() : null;
             String typeStr = data.component_type != null ? data.component_type.trim().toLowerCase() : null;
@@ -1161,11 +1775,13 @@ public class SdbEditEngine {
 
             int typeConst;
             switch (typeStr) {
+                case "intent": case "androidintent":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_INTENT; break;
                 case "sharedpreferences": case "sharedpref": case "file":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_SHAREDPREF; break;
                 case "calendar":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_CALENDAR; break;
-                case "timer": case "timertask":
+                case "timer": case "timertask": case "timer_task":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_TIMERTASK; break;
                 case "vibrator":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_VIBRATOR; break;
@@ -1199,8 +1815,12 @@ public class SdbEditEngine {
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_REWARDED_VIDEO_AD; break;
                 case "dialog":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_DIALOG; break;
-                case "progressdialog":
+                case "progressdialog": case "progress_dialog": case "loadingdialog": case "loading":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_PROGRESS_DIALOG; break;
+                case "datepicker": case "datepickerdialog": case "date_picker_dialog":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_DATE_PICKER_DIALOG; break;
+                case "timepicker": case "timepickerdialog": case "time_picker_dialog":
+                    typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_TIME_PICKER_DIALOG; break;
                 case "notification":
                     typeConst = com.besome.sketch.beans.ComponentBean.COMPONENT_TYPE_NOTIFICATION; break;
                 case "gyroscope":
@@ -1215,23 +1835,31 @@ public class SdbEditEngine {
             }
 
             try {
-                // Register the component in the project data
-                jC.a(scId).d(javaName, typeConst, componentId);
-
-                // If param1 is provided (Firebase ref path, SharedPrefs filename), set it
-                if (data.param1 != null && !data.param1.trim().isEmpty()) {
-                    java.util.ArrayList<com.besome.sketch.beans.ComponentBean> comps = jC.a(scId).e(javaName);
+                a.a.a.eC projectData = jC.a(scId);
+                String param1 = data.param1 == null ? "" : data.param1.trim();
+                boolean exists = projectData.d(javaName, typeConst, componentId);
+                if (!exists) {
+                    if (param1.isEmpty()) projectData.a(javaName, typeConst, componentId);
+                    else projectData.a(javaName, typeConst, componentId, param1);
+                } else if (!param1.isEmpty()) {
+                    java.util.ArrayList<com.besome.sketch.beans.ComponentBean> comps = projectData.e(javaName);
                     if (comps != null) {
                         for (com.besome.sketch.beans.ComponentBean comp : comps) {
-                            if (componentId.equals(comp.componentId) && comp.type == typeConst) {
-                                comp.param1 = data.param1.trim();
+                            if (comp != null && componentId.equals(comp.componentId)
+                                    && comp.type == typeConst) {
+                                comp.param1 = param1;
                                 break;
                             }
                         }
                     }
                 }
 
-                jC.a(scId).k();
+                projectData.k();
+                if (!projectData.d(javaName, typeConst, componentId)) {
+                    lastApplyError = "O componente '" + componentId
+                            + "' nao foi persistido no modelo da Activity " + javaName + ".";
+                    return false;
+                }
                 pro.sketchware.utility.SketchwareUtil.toast("Componente '" + componentId + "' adicionado.");
                 return true;
             } catch (Exception e) {
@@ -1249,7 +1877,15 @@ public class SdbEditEngine {
     }
 
     public static void addEventToActivityAndInjectCode(String scId, String javaName, String eventNameOrKey, String code, boolean replace) {
+        SdbProjectMutationEngine.Result result = SdbProjectMutationEngine.injectCode(scId, javaName, eventNameOrKey, code, replace);
+        if (result == null || !result.success) {
+            lastApplyError = result != null ? result.message : "Falha ao injetar codigo.";
+        }
+    }
+
+    private static void addEventToActivityAndInjectCodeLegacy(String scId, String javaName, String eventNameOrKey, String code, boolean replace) {
         a.a.a.eC projectData = a.a.a.jC.a(scId);
+        javaName = resolveJavaName(scId, javaName);
 
         String fullEventKey;
         String targetId;
@@ -1276,10 +1912,13 @@ public class SdbEditEngine {
             }
             
             cleanEventName = eventNameOrKey.substring(underscoreIndex + 1);
+            if (isActivityEvent(cleanEventName) && (targetId.equals(activityName) || targetId.equals(javaName) || "0".equals(targetId))) {
+                targetId = "0";
+            }
             fullEventKey = targetId + "_" + cleanEventName;
         } else {
-            targetId = activityName;
             cleanEventName = eventNameOrKey;
+            targetId = isActivityEvent(cleanEventName) ? "0" : activityName;
             fullEventKey = targetId + "_" + cleanEventName;
         }
 
@@ -1388,6 +2027,11 @@ public class SdbEditEngine {
     public static void addMoreBlockAndInjectCode(String scId, String javaName, String mbName, String spec, String code) {
         a.a.a.eC projectData = a.a.a.jC.a(scId);
 
+        String rawName = mbName;
+        mbName = SdbProjectMutationEngine.normalizeMoreBlockStorageName(mbName);
+        spec = SdbProjectMutationEngine.normalizeMoreBlockSpec(mbName, spec, rawName);
+        code = SdbProjectMutationEngine.normalizeMoreBlockCode(code, spec);
+
         // Normalize spec: ensure each %s/%d/%b param has a .name suffix (e.g. %s → %s.s)
         // BlockUtil.getVariableBlock does spec.substring(3) which requires length >= 4
         if (spec != null) {
@@ -1399,8 +2043,11 @@ public class SdbEditEngine {
         // Check for duplicate — skip if a MoreBlock with this name already exists
         for (android.util.Pair<String, String> existingMb : projectData.i(javaName)) {
             String existingName = mod.hey.studios.moreblock.ReturnMoreblockManager.getMbName(existingMb.first);
-            if (existingName.equals(mbName)) {
-                return; // Already exists — do not create duplicate
+            String normalizedBaseName = mod.hey.studios.moreblock.ReturnMoreblockManager
+                    .getMbName(mbName);
+            if (existingName.equals(normalizedBaseName)) {
+                updateMoreBlockAndCode(scId, javaName, mbName, spec, code);
+                return;
             }
         }
 
@@ -1441,6 +2088,12 @@ public class SdbEditEngine {
     public static void updateMoreBlockAndCode(String scId, String javaName, String mbName, String newSpec, String newCode) {
         a.a.a.eC projectData = a.a.a.jC.a(scId);
 
+        String rawName = mbName;
+        mbName = SdbProjectMutationEngine.normalizeMoreBlockStorageName(mbName);
+        if (newSpec != null) {
+            newSpec = SdbProjectMutationEngine.normalizeMoreBlockSpec(mbName, newSpec, rawName);
+        }
+
         // Normalize spec
         if (newSpec != null) {
             newSpec = newSpec.replaceAll("%([sdb])(?![.])", "%$1.$1");
@@ -1452,10 +2105,15 @@ public class SdbEditEngine {
         if (mbs != null) {
             for (int i = 0; i < mbs.size(); i++) {
                 String existingName = mod.hey.studios.moreblock.ReturnMoreblockManager.getMbName(mbs.get(i).first);
-                if (existingName.equals(mbName)) {
+                String normalizedBaseName = mod.hey.studios.moreblock.ReturnMoreblockManager
+                        .getMbName(mbName);
+                if (existingName.equals(normalizedBaseName)) {
                     found = true;
+                    String effectiveSpec = newSpec != null ? newSpec : mbs.get(i).second;
+                    newCode = SdbProjectMutationEngine.normalizeMoreBlockCode(newCode, effectiveSpec);
                     if (newSpec != null) {
-                        mbs.set(i, new android.util.Pair<>(newSpec, mbs.get(i).second));
+                        // Pair.first is the MoreBlock storage name; Pair.second is its spec.
+                        mbs.set(i, new android.util.Pair<>(mbs.get(i).first, newSpec));
                     }
                     break;
                 }
@@ -1488,6 +2146,125 @@ public class SdbEditEngine {
         projectData.y(javaName, mbName + "_moreBlock");
         projectData.k();
         notifyProjectRefresh(scId);
+    }
+
+    private static boolean createNativeActivity(String scId, Operation op) {
+        OperationData data = op.data;
+        if (data == null) return false;
+        String rawName = firstNonEmpty(data.screen_name, data.activity_name, data.file_name, data.name);
+        String screenName = normalizeScreenName(rawName);
+        if (screenName == null) {
+            lastApplyError = "Nome de Activity invalido.";
+            return false;
+        }
+
+        String xmlName = ProjectFileBean.getXmlName(screenName);
+        try {
+            if (jC.b(scId).b(xmlName) == null) {
+                boolean noActionBar = data.no_action_bar != null && data.no_action_bar;
+                boolean fullscreen = data.fullscreen != null && data.fullscreen;
+                boolean hasFab = data.has_fab != null && data.has_fab;
+                boolean hasDrawer = data.has_drawer != null && data.has_drawer;
+                int orientation = data.orientation != null ? data.orientation : ProjectFileBean.ORIENTATION_PORTRAIT;
+                int keyboard = data.keyboard_setting != null ? data.keyboard_setting : 0;
+                ProjectFileBean newFile = new ProjectFileBean(
+                        ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY,
+                        screenName,
+                        orientation,
+                        keyboard,
+                        noActionBar,
+                        fullscreen,
+                        hasFab,
+                        hasDrawer);
+                jC.b(scId).a(newFile);
+                jC.b(scId).j();
+                if (hasDrawer || hasFab) {
+                    try {
+                        jC.c(scId).c().useYn = "Y";
+                        jC.c(scId).k();
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            String layoutXml = data.xml_content != null ? data.xml_content : data.content;
+            if (layoutXml == null || layoutXml.trim().isEmpty()) {
+                layoutXml = "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" "
+                        + "android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" "
+                        + "android:orientation=\"vertical\" android:padding=\"16dp\" />";
+            }
+            Operation layoutOp = new Operation();
+            layoutOp.op = "edit_layout_xml";
+            layoutOp.xmlName = screenName;
+            layoutOp.data = new OperationData();
+            layoutOp.data.xml_content = layoutXml;
+            boolean layoutApplied = applyOperation(scId, layoutOp, null, null);
+            if (!layoutApplied) {
+                lastApplyError = "Activity criada, mas o layout inicial falhou.";
+            }
+            notifyProjectRefresh(scId);
+            return true;
+        } catch (Exception e) {
+            lastApplyError = e.getMessage() != null ? e.getMessage() : e.toString();
+            android.util.Log.e("SdbEditEngine", "create_activity failed", e);
+            return false;
+        }
+    }
+
+    private static String firstNonEmpty(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) return value.trim();
+        }
+        return null;
+    }
+
+    private static String normalizeScreenName(String rawName) {
+        if (rawName == null) return null;
+        String name = rawName.trim();
+        if (name.endsWith(".java")) name = name.substring(0, name.length() - 5);
+        if (name.endsWith(".xml")) name = name.substring(0, name.length() - 4);
+        if (name.endsWith("Activity")) name = name.substring(0, name.length() - "Activity".length());
+        name = name.replaceAll("([a-z0-9])([A-Z])", "$1_$2");
+        name = name.toLowerCase(java.util.Locale.US).replaceAll("[^a-z0-9_]", "_");
+        name = name.replaceAll("_+", "_").replaceAll("^_+|_+$", "");
+        if (name.isEmpty() || Character.isDigit(name.charAt(0))) return null;
+        return name;
+    }
+
+    private static String resolveJavaName(String scId, String requested) {
+        if (requested == null) return null;
+        String clean = requested.trim();
+        if (clean.isEmpty()) return clean;
+        if (!clean.endsWith(".java") && clean.endsWith("Activity")) {
+            clean = clean + ".java";
+        }
+        try {
+            java.util.ArrayList<ProjectFileBean> files = jC.b(scId).b();
+            if (files != null) {
+                for (ProjectFileBean file : files) {
+                    String javaName = file.getJavaName();
+                    String xmlBase = file.getXmlName().replace(".xml", "");
+                    String activityBase = javaName.endsWith("Activity.java")
+                            ? javaName.substring(0, javaName.length() - "Activity.java".length())
+                            : javaName.replace(".java", "");
+                    if (clean.equalsIgnoreCase(javaName)
+                            || clean.equalsIgnoreCase(javaName.replace(".java", ""))
+                            || clean.equalsIgnoreCase(xmlBase)
+                            || clean.equalsIgnoreCase(activityBase)) {
+                        return javaName;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return clean.endsWith(".java") ? clean : clean + ".java";
+    }
+
+    private static boolean isActivityEvent(String eventName) {
+        if (eventName == null) return false;
+        for (String activityEvent : a.a.a.oq.ACTIVITY_EVENTS) {
+            if (eventName.equals(activityEvent)) return true;
+        }
+        return false;
     }
 
     private static String formatXml(String xml) {

@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,9 +23,10 @@ public class GitHubApiClient {
 
     private Map<String, String> getHeaders() {
         Map<String, String> headers = new HashMap<>();
-        headers.put("Accept", "application/vnd.github.v3+json");
+        headers.put("Accept", "application/vnd.github+json");
+        headers.put("X-GitHub-Api-Version", "2022-11-28");
         if (token != null && !token.isEmpty()) {
-            headers.put("Authorization", "token " + token);
+            headers.put("Authorization", "Bearer " + token);
         }
         return headers;
     }
@@ -79,6 +81,57 @@ public class GitHubApiClient {
 
     public Network.SyncResponse getFileInfoSync(String owner, String repo, String path) throws IOException {
         return network.requestSync("GET", API_BASE + "/repos/" + owner + "/" + repo + "/contents/" + path, getHeaders(), null);
+    }
+
+    public Network.SyncResponse getRefSync(String owner, String repo, String branch) throws IOException {
+        return network.requestSync("GET", API_BASE + "/repos/" + owner + "/" + repo + "/git/refs/heads/" + branch, getHeaders(), null);
+    }
+
+    public Network.SyncResponse getCommitSync(String owner, String repo, String sha) throws IOException {
+        return network.requestSync("GET", API_BASE + "/repos/" + owner + "/" + repo + "/git/commits/" + sha, getHeaders(), null);
+    }
+
+    public Network.SyncResponse createBlobSync(String owner, String repo, String base64Content) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("content", base64Content);
+        body.put("encoding", "base64");
+        return network.requestSync("POST", API_BASE + "/repos/" + owner + "/" + repo + "/git/blobs", getHeaders(), new Gson().toJson(body));
+    }
+
+    public Network.SyncResponse createTreeSync(String owner, String repo, @Nullable String baseTreeSha,
+                                               List<Map<String, Object>> treeItems) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        if (baseTreeSha != null && !baseTreeSha.isEmpty()) {
+            body.put("base_tree", baseTreeSha);
+        }
+        body.put("tree", treeItems);
+        return network.requestSync("POST", API_BASE + "/repos/" + owner + "/" + repo + "/git/trees", getHeaders(), new Gson().toJson(body));
+    }
+
+    public Network.SyncResponse createCommitSync(String owner, String repo, String message, String treeSha,
+                                                 @Nullable String parentCommitSha) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", message);
+        body.put("tree", treeSha);
+        if (parentCommitSha != null && !parentCommitSha.isEmpty()) {
+            body.put("parents", java.util.Collections.singletonList(parentCommitSha));
+        } else {
+            body.put("parents", java.util.Collections.emptyList());
+        }
+        return network.requestSync("POST", API_BASE + "/repos/" + owner + "/" + repo + "/git/commits", getHeaders(), new Gson().toJson(body));
+    }
+
+    public Network.SyncResponse createRefSync(String owner, String repo, String branch, String commitSha) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("ref", "refs/heads/" + branch);
+        body.put("sha", commitSha);
+        return network.requestSync("POST", API_BASE + "/repos/" + owner + "/" + repo + "/git/refs", getHeaders(), new Gson().toJson(body));
+    }
+
+    public Network.SyncResponse updateRefSync(String owner, String repo, String branch, String commitSha) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("sha", commitSha);
+        return network.requestSync("PATCH", API_BASE + "/repos/" + owner + "/" + repo + "/git/refs/heads/" + branch, getHeaders(), new Gson().toJson(body));
     }
 
     public Network.SyncResponse listRepoContentsSync(String owner, String repo, @Nullable String path) throws IOException {

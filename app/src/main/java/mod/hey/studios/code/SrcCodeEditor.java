@@ -401,7 +401,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             if (isFileInLayoutFolder() && getIntent().hasExtra("sc_id")) {
                 toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Layout Preview");
             }
-            toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "SDBCodFlow").setIcon(pro.sketchware.R.drawable.ic_sdbcodflow_sparkle_img).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "GC-AI").setIcon(pro.sketchware.R.drawable.ic_gc_ai_rounded).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Find & Replace");
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Word wrap").setCheckable(true).setChecked(local_pref.getBoolean("act_ww", false));
             toolbarMenu.add(Menu.NONE, Menu.NONE, Menu.NONE, "Pretty print");
@@ -507,7 +507,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
                         toLayoutPreview();
                         break;
 
-                    case "SDBCodFlow":
+                    case "GC-AI":
                         showAiEditDialog();
                         break;
                         
@@ -548,7 +548,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
 
     private void showAiEditDialog() {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
-        builder.setTitle("SDBCodFlow - Edição Cirúrgica");
+        builder.setTitle("GC-AI - Edição Cirúrgica");
         
         final com.google.android.material.textfield.TextInputEditText input = new com.google.android.material.textfield.TextInputEditText(this);
         input.setHint("Ex: Refatore para usar um switch ou adicione log");
@@ -567,7 +567,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             String instruction = input.getText().toString().trim();
             if (instruction.isEmpty()) return;
             
-            SketchwareUtil.toast("SDBCodFlow processando...");
+            SketchwareUtil.toast("GC-AI processando...");
             agente.directEdit(binding.editor.getText().toString(), instruction, "code", new mod.sdb.agente.SdbAgenteSk.ResponseListener() {
                 @Override
                 public void onResponse(String response) {

@@ -363,6 +363,12 @@ public class ViewEditorFragment extends qA {
         }
     }
 
+    public void highlightAgentView(String viewId) {
+        if (viewId == null || viewId.trim().isEmpty() || projectFileBean == null) return;
+        viewEditor.updateSelection(viewId);
+        viewProperty.a(viewId);
+    }
+
     public void j() {
         viewEditor.setFavoriteData(Rp.h().f());
     }

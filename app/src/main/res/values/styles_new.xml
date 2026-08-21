@@ -137,4 +137,21 @@
     <style name="ThemeOverlay.SketchwarePro.Chip.ProjectPreview" parent="">
         <item name="chipStyle">@style/Widget.SketchwarePro.Chip.ProjectPreview</item>
     </style>
+
+    <style name="Widget.GcAi.ModeChip" parent="Widget.Material3.Chip.Filter">
+        <item name="android:layout_width">100dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/gc_mode_chip_text</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipBackgroundColor">@color/gc_mode_chip_background</item>
+        <item name="chipStrokeColor">@color/gc_mode_chip_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">20dp</item>
+        <item name="chipStartPadding">12dp</item>
+        <item name="chipEndPadding">12dp</item>
+        <item name="textStartPadding">8dp</item>
+        <item name="textEndPadding">8dp</item>
+    </style>
 </resources>

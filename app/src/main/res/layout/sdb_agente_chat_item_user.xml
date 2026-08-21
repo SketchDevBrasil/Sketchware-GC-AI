@@ -5,37 +5,38 @@
     android:layout_height="wrap_content"
     android:gravity="end"
     android:orientation="vertical"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp">
 
     <ImageView
         android:id="@+id/chat_image"
-        android:layout_width="200dp"
+        android:layout_width="220dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         android:adjustViewBounds="true"
+        android:maxHeight="280dp"
         android:visibility="gone" />
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="?attr/colorPrimary"
-        app:cardCornerRadius="16dp"
+        app:cardBackgroundColor="#25365A"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
         app:contentPaddingBottom="10dp"
-        app:contentPaddingLeft="16dp"
-        app:contentPaddingRight="16dp"
+        app:contentPaddingLeft="13dp"
+        app:contentPaddingRight="13dp"
         app:contentPaddingTop="10dp"
-        app:strokeWidth="0dp">
+        app:strokeColor="#4D66A0"
+        app:strokeWidth="1dp">
 
         <TextView
             android:id="@+id/chat_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxWidth="280dp"
-            android:textColor="?attr/colorOnPrimary"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textIsSelectable="true" />
+            android:textColor="#F2FBFF"
+            android:textIsSelectable="true"
+            android:textSize="14sp" />
     </com.google.android.material.card.MaterialCardView>
-
 </LinearLayout>

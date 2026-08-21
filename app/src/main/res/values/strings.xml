@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Sketchware-SDBCodFlow</string>
+    <string name="app_name">Sketchware-GC-AI</string>
     <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
     <string name="besome_blog_url">http://medium.com/sketchware</string>
     <string name="block_add_list_int_body_1">to</string>
@@ -1085,8 +1085,8 @@ ex)\"*/*\", \"image/*\", \"audio/*\", \"text/*\""</string>
     <string name="design_drawer_menu_title_font">Font Manager</string>
     <string name="design_drawer_menu_title_image">Image Manager</string>
     <string name="design_drawer_menu_title_library">Library Manager</string>
-    <string name="design_drawer_menu_title_ai_agent">SDBCodFlow</string>
-    <string name="design_drawer_menu_description_ai_agent">IA Avançada para seu Projeto</string>
+    <string name="design_drawer_menu_title_ai_agent">Official Agente GC-AI</string>
+    <string name="design_drawer_menu_description_ai_agent">Genesis Code AI integrado ao seu projeto</string>
     <string name="design_drawer_menu_title_sound">Sound Manager</string>
     <string name="design_drawer_menu_title_source_code">Show Source Code</string>
     <string name="design_drawer_menu_title_theme">Theme Manager</string>
