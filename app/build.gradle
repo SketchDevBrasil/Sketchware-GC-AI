@@ -55,10 +55,15 @@ android {
 
     signingConfigs {
         debug {
-            storeFile = file("../testkey.keystore")
-            storePassword = "testkey"
-            keyAlias = "testkey"
-            keyPassword = "testkey"
+            // testkey.keystore is gitignored, so a fresh clone doesn't have it. Fall back to
+            // the SDK's auto-generated debug keystore instead of failing the build.
+            def testkey = file("../testkey.keystore")
+            if (testkey.exists()) {
+                storeFile = testkey
+                storePassword = "testkey"
+                keyAlias = "testkey"
+                keyPassword = "testkey"
+            }
         }
     }
 

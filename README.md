@@ -2,14 +2,33 @@
   <img src="assets/Sketchware-Pro.png" style="width: 30%;" />
 </p>
 
-# Sketchware Pro
-[![GitHub contributors](https://img.shields.io/github/contributors/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro/graphs/contributors)
-[![GitHub last commit](https://img.shields.io/github/last-commit/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro/commits/)
-[![Discord server stats](https://img.shields.io/discord/790686719753846785)](http://discord.gg/kq39yhT4rX)
-[![Total downloads](https://img.shields.io/github/downloads/Sketchware-Pro/Sketchware-Pro/total)](https://github.com/Sketchware-Pro/Sketchware-Pro/releases)
-[![Repository Size](https://img.shields.io/github/repo-size/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro)
+# SDB CodFlow
 
-Welcome to Sketchware Pro! Here you'll find the source code of many classes in Sketchware Pro and, most importantly, the place to contribute to Sketchware Pro.
+[![Android CI](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/actions/workflows/android.yml/badge.svg)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/actions/workflows/android.yml)
+[![GitHub contributors](https://img.shields.io/github/contributors/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/graphs/contributors)
+[![GitHub last commit](https://img.shields.io/github/last-commit/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/commits/)
+[![Total downloads](https://img.shields.io/github/downloads/SketchDevBrasil/Sketchware-sdbcodflow/total)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/releases)
+[![Repository Size](https://img.shields.io/github/repo-size/SketchDevBrasil/Sketchware-sdbcodflow)](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow)
+
+**SDB CodFlow** é um mod do [Sketchware Pro](https://github.com/Sketchware-Pro/Sketchware-Pro)
+com um agente de IA integrado, que entende o projeto aberto e edita telas, blocos e código
+a partir de conversa. Este repositório é o código-fonte dele.
+
+*SDB CodFlow is a Sketchware Pro mod with a built-in AI agent that reads your open project and
+edits screens, blocks and code through conversation. Issues and PRs in English are welcome.*
+
+## Como contribuir
+
+Leia o **[CONTRIBUTING.md](CONTRIBUTING.md)** — ele cobre como compilar, o mapa do código,
+o padrão de commits e como investigar crashes que caem dentro dos `.jar` fechados do
+Sketchware original.
+
+- 🐞 [Reportar um bug](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=bug_report.yml)
+- 💡 [Sugerir uma funcionalidade](https://github.com/SketchDevBrasil/Sketchware-sdbcodflow/issues/new?template=feature_request.yml)
+- 🤝 [Código de Conduta](CODE_OF_CONDUCT.md)
+- 🔒 [Política de Segurança](SECURITY.md)
+
+Boa parte do que está abaixo vem do Sketchware Pro original e continua valendo aqui.
 
 ## Building the App
 To build the app, you must use Gradle. It's highly recommended to use Android Studio for the best experience.
@@ -32,15 +51,15 @@ To build the app, you must use Gradle. It's highly recommended to use Android St
 
 ## Contributing
 
-If you'd like to contribute to Sketchware Pro, follow these steps:
+O guia completo está no [CONTRIBUTING.md](CONTRIBUTING.md). O resumo:
 
-1. Fork this repository.
-2. Make changes in your forked repository.
-3. Test out those changes.
-4. Create a pull request in this repository.
-5. Your pull request will be reviewed by the repository members and merged if accepted.
+1. Faça um fork deste repositório.
+2. Crie uma branch para a sua mudança.
+3. **Teste no aparelho ou emulador** — compilar não é testar.
+4. Abra um pull request descrevendo o que mudou e como você testou.
 
-We welcome contributions of any size, whether they are major features or bug fixes, but please note that all contributions will be thoroughly reviewed.
+Contribuições de qualquer tamanho são bem-vindas, de correção de crash a funcionalidade nova.
+Todas passam por revisão.
 
 ### Commit Message
 
